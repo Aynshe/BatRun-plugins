@@ -1,0 +1,8 @@
+\plugins\AttractMode\config.ini
+\emulationstation\.emulationstation\scripts\start\AttractMode.bat
+\emulationstation\.emulationstation\scripts\system-selected\AttractMode-system-selected.bat
+\emulationstation\.emulationstation\scripts\game-selected\AttractMode-game-selected.bat
+\emulationstation\.emulationstation\scripts\game-start\AttractMode-start-game.bat
+\emulationstation\.emulationstation\scripts\game-end\AttractMode-end-game.bat
+\emulationstation\.emulationstation\scripts\screensaver-start\AttractMode-screensaver-start.bat
+\emulationstation\.emulationstation\scripts\screensaver-stop\AttractMode-screensaver-stop.bat 
