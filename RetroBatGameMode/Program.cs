@@ -124,8 +124,8 @@ namespace RetroBatGameMode
         static bool autoStartWithRetroBat = true;
         static bool logToFile = true;
         static string language = "system";
-        static string whitelist = "retrobat, emulationstation, vlc, batrun, BatRunGuardian, GameBar.exe";
-        static string hideWhitelist = "retrobat, emulationstation, retroarch, vlc, explorer, batrun, BatRunGuardian, GameBar.exe";
+        static string whitelist = "retrobat, emulationstation, vlc, batrun, BatRunGuardian, GameBar, AttractMode";
+        static string hideWhitelist = "retrobat, emulationstation, retroarch, vlc, explorer, batrun, BatRunGuardian, GameBar, AttractMode";
 
         static System.Collections.Generic.List<int> suspendedProcessIds = new System.Collections.Generic.List<int>();
         static System.Collections.Generic.List<IntPtr> hiddenWindows = new System.Collections.Generic.List<IntPtr>();
@@ -1328,7 +1328,8 @@ namespace RetroBatGameMode
                 "explorer", "emulationstation", "retroarch", "retrobat", "retrobatgamemode", "cmd", "conhost", "taskmgr", "devenv",
                 "textinputhost", "searchhost", "startmenuexperiencehost", "shellexperiencehost", "sihost", "ctfmon", "dwm", "taskhostw",
                 "runtimebroker", "applicationframehost", "systemsettings", "system", "idle", "winlogon", "csrss", "smss", "lsass",
-                "spoolsv", "svchost", "fontdrvhost", "widgets", "gamingservices", "gamingservicesnet", "msedge", "edge"
+                "spoolsv", "svchost", "fontdrvhost", "widgets", "gamingservices", "gamingservicesnet", "msedge", "edge", "attractmode",
+                "batrun","batrunguardian", "gamebar"
             };
 
             foreach (var w in whitelistArgs)
