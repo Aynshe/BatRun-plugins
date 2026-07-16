@@ -8,11 +8,11 @@
     <Platforms>AnyCPU;x64</Platforms>
 
     <!-- Versionning de l'exécutable / assemblies -->
-    <VersionPrefix>1.1.0</VersionPrefix>
-    <FileVersion>1.1.0</FileVersion>
-    <AssemblyVersion>1.1.0</AssemblyVersion>
-    <InformationalVersion>1.1.0</InformationalVersion>
-    <ProductVersion>1.1.0</ProductVersion>
+    <VersionPrefix>1.2.0</VersionPrefix>
+    <FileVersion>1.2.0</FileVersion>
+    <AssemblyVersion>1.2.0</AssemblyVersion>
+    <InformationalVersion>1.2.0</InformationalVersion>
+    <ProductVersion>1.2.0</ProductVersion>
     <Company>RetroBat</Company>
     <Product>RetroBat Attract Mode Assistant</Product>
   </PropertyGroup>

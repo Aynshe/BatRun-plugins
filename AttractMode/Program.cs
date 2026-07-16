@@ -809,6 +809,11 @@ namespace RetroBatAttractMode
         // ====================================================================
         // VARIABLES DE CONFIGURATION ET D'ETAT
         // ====================================================================
+        // Active (true) ou desactive (false) l'Attract Mode. Quand false, le processus
+        // reste en vie (utile car CreateStartScript le lance au demarrage d'ES) mais se
+        // met en veille : aucune detection d'activite, aucun defilement, aucune touche
+        // simulee. Rechargeable en live via config.ini a tout moment.
+        static bool Enabled = true;
         static int GameDisplayDelay = 15;         // secondes
         static int InactivityTimeout = 60;       // secondes
         static int MaxGamesPerSystem = 3;
@@ -858,6 +863,9 @@ namespace RetroBatAttractMode
             {
                 return; // Une instance est déjà en cours d'exécution
             }
+
+            // Migrer un config.ini existant pour lui ajouter la cle Enable si absente
+            EnsureEnableKeyInConfig();
 
             // Chargement de la configuration INI si elle existe
             LoadConfig();
@@ -912,6 +920,21 @@ namespace RetroBatAttractMode
                     {
                         ConfigDirty = false;
                         LoadConfig();
+                    }
+
+                    // 0b. Mode veille : Enable=false. Le processus reste en vie mais
+                    // ne reagit a aucun event. On peut le reactiver en live via config.ini.
+                    if (!Enabled)
+                    {
+                        if (IsAttractModeActive)
+                        {
+                            WriteLog("Enable=false received: putting Attract Mode to sleep (standby, no events handled).");
+                            IsAttractModeActive = false;
+                            GamesCountInCurrentSystem = 0;
+                        }
+                        WriteConsole("[Standby] Enable=false. Attract Mode disabled in live config.");
+                        Thread.Sleep(1000);
+                        continue;
                     }
 
                     // 0. Vérifier si EmulationStation est toujours en cours d'exécution
@@ -1543,6 +1566,7 @@ namespace RetroBatAttractMode
             }
 
             // Snapshot avant pour differ
+            bool oldEnabled = Enabled;
             int oldGameDisplayDelay = GameDisplayDelay;
             int oldInactivityTimeout = InactivityTimeout;
             int oldMaxGamesPerSystem = MaxGamesPerSystem;
@@ -1575,6 +1599,9 @@ namespace RetroBatAttractMode
 
                         switch (key)
                         {
+                            case "enable":
+                                Enabled = val.Equals("true", StringComparison.OrdinalIgnoreCase);
+                                break;
                             case "gamedisplaydelay":
                                 int.TryParse(val, out GameDisplayDelay);
                                 break;
@@ -1622,6 +1649,7 @@ namespace RetroBatAttractMode
                 {
                     // Loguer le diff de configuration applique en live
                     var changes = new List<string>();
+                    if (Enabled != oldEnabled) changes.Add($"Enabled={oldEnabled}->{Enabled}");
                     if (GameDisplayDelay != oldGameDisplayDelay) changes.Add($"GameDisplayDelay={oldGameDisplayDelay}->{GameDisplayDelay}");
                     if (InactivityTimeout != oldInactivityTimeout) changes.Add($"InactivityTimeout={oldInactivityTimeout}->{InactivityTimeout}");
                     if (MaxGamesPerSystem != oldMaxGamesPerSystem) changes.Add($"MaxGamesPerSystem={oldMaxGamesPerSystem}->{MaxGamesPerSystem}");
@@ -1725,23 +1753,160 @@ namespace RetroBatAttractMode
 ; ====================================================================
 
 [Settings]
+
+; Enable (true) or disable (false) Attract Mode.
+; Reloaded live: no restart needed to toggle.
+Enable=true
+
+; Seconds to stay on a game to play its video
 GameDisplayDelay=" + GameDisplayDelay + @"
+
+; Seconds of inactivity before Attract Mode starts
 InactivityTimeout=" + InactivityTimeout + @"
+
+; Max games shown per system before going back to the system list
 MaxGamesPerSystem=" + MaxGamesPerSystem + @"
+
+; Scroll simulation: min/max wheel ticks per scroll, ms between ticks
 MinScrollTicks=" + MinScrollTicks + @"
 MaxScrollTicks=" + MaxScrollTicks + @"
 ScrollDelayMs=" + ScrollDelayMs + @"
+
+; Log actions to attract_mode_log.txt
 LogToFile=" + (LogToFile ? "true" : "false") + @"
+
+; Key to enter a system (default: X). Single letters or special keys
+; (ENTER, ESCAPE, SPACE, BACK, TAB, UP, DOWN, LEFT, RIGHT) or hex (0x0D)
 EnterKey=" + EnterKey + @"
+
+; Key to exit a system (default: Z)
 ExitKey=" + ExitKey + @"
+
+; Pause Attract Mode if EmulationStation is not in foreground (default: true)
 OnlyWhenFocused=" + (OnlyWhenFocused ? "true" : "false") + @"
+
+; Create an auto-start script in retrobat/scripts/start to launch with ES (default: false)
 CreateStartScript=" + (CreateStartScript ? "true" : "false") + @"
+
+; Show a console for live logs (default: false)
 ShowConsole=" + (ShowConsole ? "true" : "false") + @"
 ";
                 File.WriteAllText(path, defaultIni);
                 WriteLog("Default config.ini file generated successfully.");
             }
             catch { }
+        }
+
+        // ====================================================================
+        // MIGRATION : Insere la cle Enable en tete d'un config.ini existant
+        // si elle est absente. Preserve tout le contenu original.
+        // ====================================================================
+        static void EnsureEnableKeyInConfig()
+        {
+            if (!File.Exists(ConfigPath)) return;
+
+            try
+            {
+                string content = File.ReadAllText(ConfigPath);
+
+                // Extraire toutes les valeurs existantes du fichier en attendant
+                var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                string[] lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+                foreach (string ln in lines)
+                {
+                    string t = ln.Trim();
+                    if (t.StartsWith(";") || t.StartsWith("#") || t.StartsWith("[")) continue;
+                    int eq = t.IndexOf('=');
+                    if (eq > 0)
+                    {
+                        string k = t.Substring(0, eq).Trim();
+                        string v = t.Substring(eq + 1).Trim();
+                        values[k] = v;
+                    }
+                }
+
+                bool hasEnable = values.ContainsKey("Enable");
+                bool needsRegen = !hasEnable;
+
+                if (hasEnable)
+                {
+                    // Verifier que les commentaires sont presents : au moins une ligne
+                    // de commentaire directement avant une cle (pas juste l'en-tete).
+                    bool hasComments = false;
+                    for (int i = 0; i < lines.Length - 1; i++)
+                    {
+                        string cur = lines[i].Trim();
+                        string next = lines[i + 1].Trim();
+                        if (cur.StartsWith(";") && !next.StartsWith(";") && !next.StartsWith("[") && !string.IsNullOrEmpty(next))
+                        {
+                            hasComments = true;
+                            break;
+                        }
+                    }
+                    if (!hasComments) needsRegen = true;
+                }
+
+                if (!needsRegen) return;
+
+                // Regenerer avec commentaires modernes en conservant les valeurs
+                // personnalisees de l'utilisateur (fallback aux defauts si absent).
+                string GetVal(string key, string fallback)
+                {
+                    return values.TryGetValue(key, out string v) ? v : fallback;
+                }
+
+                string regenerated = @"; ====================================================================
+; RETROBAT ATTRACT MODE CONFIGURATION FILE
+; Save as ""config.ini"" in the same folder as RetroBatAttractMode.exe
+; ====================================================================
+
+[Settings]
+
+; Enable (true) or disable (false) Attract Mode.
+; Reloaded live: no restart needed to toggle.
+Enable=" + GetVal("Enable", "true") + @"
+
+; Seconds to stay on a game to play its video
+GameDisplayDelay=" + GetVal("GameDisplayDelay", "15") + @"
+
+; Seconds of inactivity before Attract Mode starts
+InactivityTimeout=" + GetVal("InactivityTimeout", "60") + @"
+
+; Max games shown per system before going back to the system list
+MaxGamesPerSystem=" + GetVal("MaxGamesPerSystem", "3") + @"
+
+; Scroll simulation: min/max wheel ticks per scroll, ms between ticks
+MinScrollTicks=" + GetVal("MinScrollTicks", "2") + @"
+MaxScrollTicks=" + GetVal("MaxScrollTicks", "8") + @"
+ScrollDelayMs=" + GetVal("ScrollDelayMs", "80") + @"
+
+; Log actions to attract_mode_log.txt
+LogToFile=" + GetVal("LogToFile", "true") + @"
+
+; Key to enter a system (default: X). Single letters or special keys
+; (ENTER, ESCAPE, SPACE, BACK, TAB, UP, DOWN, LEFT, RIGHT) or hex (0x0D)
+EnterKey=" + GetVal("EnterKey", "X") + @"
+
+; Key to exit a system (default: Z)
+ExitKey=" + GetVal("ExitKey", "Z") + @"
+
+; Pause Attract Mode if EmulationStation is not in foreground (default: true)
+OnlyWhenFocused=" + GetVal("OnlyWhenFocused", "true") + @"
+
+; Create an auto-start script in retrobat/scripts/start to launch with ES (default: false)
+CreateStartScript=" + GetVal("CreateStartScript", "false") + @"
+
+; Show a console for live logs (default: false)
+ShowConsole=" + GetVal("ShowConsole", "false") + @"
+";
+
+                File.WriteAllText(ConfigPath, regenerated);
+                WriteLog("[Config migration] Config.ini regenerated with comments (user values preserved).");
+            }
+            catch (Exception ex)
+            {
+                WriteLog($"[Config migration] Could not migrate config.ini: {ex.Message}");
+            }
         }
 
        static void AutoInstallScripts()

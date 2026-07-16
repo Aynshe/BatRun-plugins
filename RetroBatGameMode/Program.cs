@@ -114,7 +114,7 @@ namespace RetroBatGameMode
         const uint PROCESS_QUERY_INFORMATION = 0x0400;
         const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
-        static bool enableOptimization = true;
+        static bool enabled = true;
         static bool killExplorer = true;
         static bool emptyWorkingSet = true;
         static bool suspendBackgroundApps = true;
@@ -123,9 +123,13 @@ namespace RetroBatGameMode
         static bool showConsole = false;
         static bool autoStartWithRetroBat = true;
         static bool logToFile = true;
+        static bool standaloneMonitor = false;
+        static bool isOptimized = false;
+        static bool requestExit = false;
         static string language = "system";
         static string whitelist = "retrobat, emulationstation, vlc, batrun, BatRunGuardian, GameBar, AttractMode";
         static string hideWhitelist = "retrobat, emulationstation, retroarch, vlc, explorer, batrun, BatRunGuardian, GameBar, AttractMode";
+        static string thirdPartyApps = "";
 
         static System.Collections.Generic.List<int> suspendedProcessIds = new System.Collections.Generic.List<int>();
         static System.Collections.Generic.List<IntPtr> hiddenWindows = new System.Collections.Generic.List<IntPtr>();
@@ -385,6 +389,10 @@ namespace RetroBatGameMode
                 System.Collections.Generic.HashSet<string> hideWhite = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var w in hideListArgs)
                     hideWhite.Add(w.Trim().Replace(".exe", ""));
+
+                // ThirdPartyApps must never be hidden: they are the apps we optimize FOR
+                foreach (var thirdParty in GetThirdPartyAppNames())
+                    hideWhite.Add(thirdParty);
 
                 // Ultra-minimal critical safe list of processes whose windows should NEVER be hidden under any circumstances
                 // We exclude "dwm" and other system components so that if they have visible windows and are not in hideWhitelist, they CAN be hidden as requested.
@@ -744,6 +752,208 @@ namespace RetroBatGameMode
             Log("[Watchdog] Restoration completed. Watchdog exiting.");
         }
 
+        static void EnsureConfigWithComments(string iniPath)
+        {
+            try
+            {
+                // Migration: read EnableOptimization (old key) → Enable (new key)
+                bool migratedEnabled = enabled;
+                bool hadLegacyKey = false;
+                if (File.Exists(iniPath))
+                {
+                    string legacyVal = ReadIniString("Settings", "EnableOptimization", "", iniPath);
+                    if (!string.IsNullOrEmpty(legacyVal))
+                    {
+                        migratedEnabled = legacyVal.ToLower() == "true" || legacyVal == "1" || legacyVal == "yes";
+                        hadLegacyKey = true;
+                    }
+                    // Check if we need to add missing new options (StandaloneMonitor, ThirdPartyApps)
+                    // by reading them and checking if they're at default (which means they weren't in file)
+                    string thirdPartyCheck = ReadIniString("Settings", "ThirdPartyApps", "NOT_PRESENT", iniPath);
+                    if (thirdPartyCheck == "NOT_PRESENT")
+                    {
+                        // Neither new option exists in this old config, we need to rewrite to add them
+                        Log("[Migration] Adding missing options 'StandaloneMonitor' and 'ThirdPartyApps' to config.ini.");
+                    }
+                }
+
+                if (!File.Exists(iniPath))
+                {
+                    // Write all settings with explanatory comments
+                    EnsureConfigWithCommentsWrite(iniPath, enabled, true);
+                }
+                else if (hadLegacyKey || ReadIniString("Settings", "ThirdPartyApps", "NOT_PRESENT", iniPath) == "NOT_PRESENT")
+                {
+                    // Migrate: read all existing values then rewrite with comments + renamed key + new options
+                    bool curKillExplorer = ReadIniBool("Settings", "KillExplorer", killExplorer, iniPath);
+                    bool curEmptyWorkingSet = ReadIniBool("Settings", "EmptyWorkingSet", emptyWorkingSet, iniPath);
+                    bool curSuspendBackgroundApps = ReadIniBool("Settings", "SuspendBackgroundApps", suspendBackgroundApps, iniPath);
+                    bool curShowOverlay = ReadIniBool("Settings", "ShowOverlay", showOverlay, iniPath);
+                    string curLanguage = ReadIniString("Settings", "Language", language, iniPath);
+                    bool curAutoStartWithRetroBat = ReadIniBool("Settings", "AutoStartWithRetroBat", autoStartWithRetroBat, iniPath);
+                    bool curShowConsole = ReadIniBool("Settings", "ShowConsole", showConsole, iniPath);
+                    bool curLogToFile = ReadIniBool("Settings", "LogToFile", logToFile, iniPath);
+                    string curWhitelist = ReadIniString("Settings", "Whitelist", whitelist, iniPath);
+                    bool curHideNonSuspendedWindows = ReadIniBool("Settings", "HideNonSuspendedWindows", hideNonSuspendedWindows, iniPath);
+                    string curHideWhitelist = ReadIniString("Settings", "HideWhitelist", hideWhitelist, iniPath);
+                    bool curStandaloneMonitor = ReadIniBool("Settings", "StandaloneMonitor", standaloneMonitor, iniPath);
+                    string curThirdPartyApps = ReadIniString("Settings", "ThirdPartyApps", thirdPartyApps, iniPath);
+
+                    // We must preserve runtime state keys (SuspendedApps, HiddenApps, etc.)
+                    string curSuspendedApps = ReadIniString("Settings", "SuspendedApps", "", iniPath);
+                    string curLastSuspendedApps = ReadIniString("Settings", "LastSuspendedApps", "", iniPath);
+                    string curHiddenApps = ReadIniString("Settings", "HiddenApps", "", iniPath);
+                    string curLastHiddenApps = ReadIniString("Settings", "LastHiddenApps", "", iniPath);
+
+                    if (hadLegacyKey)
+                    {
+                        Log("[Migration] Migrating config.ini: 'EnableOptimization' → 'Enable', adding comments.");
+                    }
+                    EnsureConfigWithCommentsWrite(iniPath, migratedEnabled, false, curKillExplorer, curEmptyWorkingSet,
+                        curSuspendBackgroundApps, curShowOverlay, curLanguage, curAutoStartWithRetroBat,
+                        curShowConsole, curLogToFile, curWhitelist, curHideNonSuspendedWindows, curHideWhitelist,
+                        curStandaloneMonitor, curThirdPartyApps,
+                        curSuspendedApps, curLastSuspendedApps, curHiddenApps, curLastHiddenApps);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("Error ensuring config.ini with comments: " + ex.Message);
+            }
+        }
+
+        static void EnsureConfigWithCommentsWrite(string iniPath,
+            bool writeEnabled, bool isFresh,
+            bool pKillExplorer = true, bool pEmptyWorkingSet = true,
+            bool pSuspendBackgroundApps = true, bool pShowOverlay = true,
+            string pLanguage = "system", bool pAutoStartWithRetroBat = true,
+            bool pShowConsole = false, bool pLogToFile = true,
+            string pWhitelist = "", bool pHideNonSuspendedWindows = true,
+            string pHideWhitelist = "",
+            bool pStandaloneMonitor = false, string pThirdPartyApps = "",
+            string pSuspendedApps = "", string pLastSuspendedApps = "",
+            string pHiddenApps = "", string pLastHiddenApps = "")
+        {
+            // Build the INI file manually with explanatory comments (WritePrivateProfileString cannot write comments)
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("; ====================================================================");
+            sb.AppendLine("; RETROBAT GAME MODE OPTIMIZER CONFIGURATION FILE");
+            sb.AppendLine("; All options below are hot-reloadable: editing this file while the");
+            sb.AppendLine("; program is running applies changes instantly (live mode) without");
+            sb.AppendLine("; restarting the process. Toggle 'Enable' to enable/disable on the fly.");
+            sb.AppendLine("; ====================================================================");
+            sb.AppendLine();
+            sb.AppendLine("[Settings]");
+            sb.AppendLine();
+            sb.AppendLine("; --- Master switch --------------------------------------------------");
+            sb.AppendLine("; Enable  : Enable (true) or disable (false) all optimizations at");
+            sb.AppendLine(";           once. When set to false the system is fully restored and");
+            sb.AppendLine(";           the process keeps running, waiting for 'Enable=true' to");
+            sb.AppendLine(";           re-apply optimizations. (Hot-reloadable)");
+            sb.AppendLine("Enable=" + (writeEnabled ? "true" : "false"));
+            sb.AppendLine();
+            sb.AppendLine("; --- Explorer / Shell ------------------------------------------------");
+            sb.AppendLine("; KillExplorer : Hide the taskbar, desktop icons and Explorer folder");
+            sb.AppendLine(";                windows to free resources and avoid focus stealing.");
+            sb.AppendLine(";                The explorer.exe process is left alive to prevent");
+            sb.AppendLine(";                Windows from auto-restarting it. (Hot-reloadable)");
+            sb.AppendLine("KillExplorer=" + (pKillExplorer ? "true" : "false"));
+            sb.AppendLine();
+            sb.AppendLine("; --- Memory ----------------------------------------------------------");
+            sb.AppendLine("; EmptyWorkingSet : Force Windows to trim the working set (RAM)");
+            sb.AppendLine(";                   of all accessible processes to reclaim memory.");
+            sb.AppendLine(";                   (Hot-reloadable)");
+            sb.AppendLine("EmptyWorkingSet=" + (pEmptyWorkingSet ? "true" : "false"));
+            sb.AppendLine();
+            sb.AppendLine("; --- Background apps -------------------------------------------------");
+            sb.AppendLine("; SuspendBackgroundApps : Suspend (freeze) non-essential background");
+            sb.AppendLine(";                         applications (browsers, launchers, etc.)");
+            sb.AppendLine(";                         to free CPU/GPU for the game. Elevated");
+            sb.AppendLine(";                         processes are never suspended.");
+            sb.AppendLine(";                         (Hot-reloadable)");
+            sb.AppendLine("SuspendBackgroundApps=" + (pSuspendBackgroundApps ? "true" : "false"));
+            sb.AppendLine();
+            sb.AppendLine("; --- Window hiding ---------------------------------------------------");
+            sb.AppendLine("; HideNonSuspendedWindows : Hide visible windows of apps that are not");
+            sb.AppendLine(";                          in the HideWhitelist, even if they are not");
+            sb.AppendLine(";                          suspended, to get a clean desktop.");
+            sb.AppendLine(";                          (Hot-reloadable)");
+            sb.AppendLine("HideNonSuspendedWindows=" + (pHideNonSuspendedWindows ? "true" : "false"));
+            sb.AppendLine();
+            sb.AppendLine("; --- Overlay / UI -----------------------------------------------------");
+            sb.AppendLine("; ShowOverlay : Show a brief on-screen notification when Game Mode is");
+            sb.AppendLine(";              enabled (green) or disabled (red).");
+            sb.AppendLine(";              (Hot-reloadable)");
+            sb.AppendLine("ShowOverlay=" + (pShowOverlay ? "true" : "false"));
+            sb.AppendLine();
+            sb.AppendLine("; --- Language ---------------------------------------------------------");
+            sb.AppendLine("; Language : Language for overlay messages. Values: 'system' (auto),");
+            sb.AppendLine(";            'fr' (French) or 'en' (English). (Hot-reloadable)");
+            sb.AppendLine("Language=" + pLanguage);
+            sb.AppendLine();
+            sb.AppendLine("; --- Auto-start -------------------------------------------------------");
+            sb.AppendLine("; AutoStartWithRetroBat : Automatically generate a startup script in");
+            sb.AppendLine(";                        RetroBat's EmulationStation start scripts");
+            sb.AppendLine(";                        folder so this optimizer launches with ES.");
+            sb.AppendLine(";                        (Applied at startup only)");
+            sb.AppendLine("AutoStartWithRetroBat=" + (pAutoStartWithRetroBat ? "true" : "false"));
+            sb.AppendLine();
+            sb.AppendLine("; --- Console ----------------------------------------------------------");
+            sb.AppendLine("; ShowConsole : Allocate and show a debug console window alongside");
+            sb.AppendLine(";              the process. (Applied at startup only)");
+            sb.AppendLine("ShowConsole=" + (pShowConsole ? "true" : "false"));
+            sb.AppendLine();
+            sb.AppendLine("; --- Logging ----------------------------------------------------------");
+            sb.AppendLine("; LogToFile : Write log entries to RetroBatGameMode.log next to the");
+            sb.AppendLine(";             executable (rotated at 1 MB). (Hot-reloadable)");
+            sb.AppendLine("LogToFile=" + (pLogToFile ? "true" : "false"));
+            sb.AppendLine();
+            sb.AppendLine("; --- Whitelists -------------------------------------------------------");
+            sb.AppendLine("; Whitelist : Comma-separated list of process names that will never");
+            sb.AppendLine(";             be suspended. Add emulators or media players here.");
+            sb.AppendLine(";             (Hot-reloadable)");
+            sb.AppendLine("Whitelist=" + pWhitelist);
+            sb.AppendLine();
+            sb.AppendLine("; HideWhitelist : Comma-separated list of process names whose");
+            sb.AppendLine(";                 windows will never be hidden. Usually contains");
+            sb.AppendLine(";                 the emulator/front-end and Explorer.");
+            sb.AppendLine(";                 (Hot-reloadable)");
+            sb.AppendLine("HideWhitelist=" + pHideWhitelist);
+            sb.AppendLine();
+            sb.AppendLine("; --- Standalone monitor (third-party app surveillance) -----------------");
+            sb.AppendLine("; StandaloneMonitor : Allow the optimizer to keep running and stay");
+            sb.AppendLine(";                    active even when RetroBat/EmulationStation is not");
+            sb.AppendLine(";                    running. When 'true', the process keeps running in");
+            sb.AppendLine(";                    idle/standby mode and starts optimizing as soon as");
+            sb.AppendLine(";                    RetroBat OR any process listed in 'ThirdPartyApps'");
+            sb.AppendLine(";                    is detected. When 'false' (default), the process");
+            sb.AppendLine(";                    exits automatically after RetroBat/EmulationStation");
+            sb.AppendLine(";                    closes. (Hot-reloadable)");
+            sb.AppendLine("StandaloneMonitor=" + (pStandaloneMonitor ? "true" : "false"));
+            sb.AppendLine();
+            sb.AppendLine("; ThirdPartyApps : Comma-separated list of additional process names");
+            sb.AppendLine(";                  that should ALSO trigger optimizations (in addition");
+            sb.AppendLine(";                  to RetroBat/EmulationStation). When any monitored");
+            sb.AppendLine(";                  app is running, optimizations are applied. The");
+            sb.AppendLine(";                  system is restored only when ALL monitored apps");
+            sb.AppendLine(";                  (RetroBat + ThirdPartyApps) have closed.");
+            sb.AppendLine(";                  Example: 'chrome, firefox, vlc' (without quotes).");
+            sb.AppendLine(";                  (Hot-reloadable). Empty by default.");
+            sb.AppendLine("ThirdPartyApps=" + pThirdPartyApps);
+            sb.AppendLine();
+            sb.AppendLine("; --- Runtime state (do not edit manually) ----------------------------");
+            sb.AppendLine("; These keys track active/recoverable state and are managed by the");
+            sb.AppendLine("; program and watchdog. Do not modify them manually.");
+            sb.AppendLine("SuspendedApps=" + pSuspendedApps);
+            sb.AppendLine("LastSuspendedApps=" + pLastSuspendedApps);
+            sb.AppendLine("HiddenApps=" + pHiddenApps);
+            sb.AppendLine("LastHiddenApps=" + pLastHiddenApps);
+            sb.AppendLine();
+
+            File.WriteAllText(iniPath, sb.ToString());
+            Log("config.ini " + (isFresh ? "created" : "rewritten") + " with explanatory comments.");
+        }
+
         static string ReadIniString(string section, string key, string defaultValue, string filePath)
         {
             var temp = new System.Text.StringBuilder(255);
@@ -908,29 +1118,11 @@ namespace RetroBatGameMode
 
             string iniPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.ini");
 
-            if (!File.Exists(iniPath))
+            EnsureConfigWithComments(iniPath);
+
+            if (File.Exists(iniPath))
             {
-                try
-                {
-                    WritePrivateProfileString("Settings", "EnableOptimization", enableOptimization ? "true" : "false", iniPath);
-                    WritePrivateProfileString("Settings", "KillExplorer", killExplorer ? "true" : "false", iniPath);
-                    WritePrivateProfileString("Settings", "EmptyWorkingSet", emptyWorkingSet ? "true" : "false", iniPath);
-                    WritePrivateProfileString("Settings", "SuspendBackgroundApps", suspendBackgroundApps ? "true" : "false", iniPath);
-                    WritePrivateProfileString("Settings", "ShowOverlay", showOverlay ? "true" : "false", iniPath);
-                    WritePrivateProfileString("Settings", "Language", language, iniPath);
-                    WritePrivateProfileString("Settings", "AutoStartWithRetroBat", autoStartWithRetroBat ? "true" : "false", iniPath);
-                    WritePrivateProfileString("Settings", "ShowConsole", showConsole ? "true" : "false", iniPath);
-                    WritePrivateProfileString("Settings", "LogToFile", logToFile ? "true" : "false", iniPath);
-                    WritePrivateProfileString("Settings", "Whitelist", whitelist, iniPath);
-                    WritePrivateProfileString("Settings", "HideNonSuspendedWindows", hideNonSuspendedWindows ? "true" : "false", iniPath);
-                    WritePrivateProfileString("Settings", "HideWhitelist", hideWhitelist, iniPath);
-                    WritePrivateProfileString(null, null, null, iniPath); // Flush to disk
-                }
-                catch { }
-            }
-            else
-            {
-                enableOptimization = ReadIniBool("Settings", "EnableOptimization", enableOptimization, iniPath);
+                enabled = ReadIniBool("Settings", "Enable", enabled, iniPath);
                 killExplorer = ReadIniBool("Settings", "KillExplorer", killExplorer, iniPath);
                 emptyWorkingSet = ReadIniBool("Settings", "EmptyWorkingSet", emptyWorkingSet, iniPath);
                 suspendBackgroundApps = ReadIniBool("Settings", "SuspendBackgroundApps", suspendBackgroundApps, iniPath);
@@ -942,13 +1134,13 @@ namespace RetroBatGameMode
                 whitelist = ReadIniString("Settings", "Whitelist", whitelist, iniPath);
                 hideNonSuspendedWindows = ReadIniBool("Settings", "HideNonSuspendedWindows", hideNonSuspendedWindows, iniPath);
                 hideWhitelist = ReadIniString("Settings", "HideWhitelist", hideWhitelist, iniPath);
+                standaloneMonitor = ReadIniBool("Settings", "StandaloneMonitor", standaloneMonitor, iniPath);
+                thirdPartyApps = ReadIniString("Settings", "ThirdPartyApps", thirdPartyApps, iniPath);
             }
-
-            if (!enableOptimization) return;
 
             var asmName = System.Reflection.Assembly.GetExecutingAssembly().GetName();
             var asmVersion = asmName.Version;
-            string versionStr = asmVersion != null ? "v" + asmVersion.ToString(3) : "v1.1.0";
+            string versionStr = asmVersion != null ? "v" + asmVersion.ToString(3) : "v1.2.0";
             Log("RetroBat Game Mode Optimizer Started (" + versionStr + ")");
 
             if (!IsAdministrator())
@@ -956,7 +1148,8 @@ namespace RetroBatGameMode
                 Log("WARNING: Application is not running as Administrator. Some optimizations (like EmptyWorkingSet or SuspendApp on high privileged apps) may fail.");
             }
 
-            // Attempt to recover previously suspended processes from a crashed/aborted session
+            // Recovery, console and autostart happen regardless of `enabled` so the live-mode
+            // watchdog loop can toggle optimizations dynamically while the process keeps running.
             RecoverSuspendedApps(iniPath);
             RecoverHiddenWindows(iniPath);
 
@@ -975,14 +1168,23 @@ namespace RetroBatGameMode
 
             ManageAutoStartScript();
 
-            if (!WaitForEmulationStationToStart(30000))
+            // In standalone mode, we do NOT exit if RetroBat is absent — we keep running as an idle sentinel.
+            // Only the standard mode waits for RetroBat/EmulationStation at startup (30 s timeout).
+            if (!standaloneMonitor && !WaitForEmulationStationToStart(30000))
             {
-                Log("EmulationStation not found. Exiting in 5 seconds...");
+                Log("EmulationStation not found and StandaloneMonitor=false. Exiting in 5 seconds...");
                 if (showConsole) Thread.Sleep(5000);
                 return;
             }
 
-            if (showOverlay) ShowNotification(GetLangMessage("optimizing"), false);
+            if (standaloneMonitor)
+            {
+                Log("[Standalone] Standalone monitor mode active. Waiting for any monitored app (RetroBat or ThirdPartyApps)...");
+            }
+            else
+            {
+                Log("[Monitor] RetroBat/EmulationStation detected. Entering monitoring loop...");
+            }
 
             try
             {
@@ -1013,12 +1215,7 @@ namespace RetroBatGameMode
                     Log("Failed to spawn watchdog process: " + ex.Message);
                 }
 
-                if (killExplorer) KillExplorer();
-                if (suspendBackgroundApps) SuspendApps();
-                if (hideNonSuspendedWindows) HideActiveAppWindows();
-                if (emptyWorkingSet) EmptyAllWorkingSets();
-
-                WaitForEmulationStationToClose();
+                RunMonitoringLoop(iniPath);
             }
             catch (Exception ex)
             {
@@ -1040,6 +1237,37 @@ namespace RetroBatGameMode
             }
         }
 
+        static void ApplyOptimizations()
+        {
+            Log("[Optimizer] Applying optimizations...");
+            try
+            {
+                if (killExplorer) KillExplorer();
+                if (suspendBackgroundApps) SuspendApps();
+                if (hideNonSuspendedWindows) HideActiveAppWindows();
+                if (emptyWorkingSet) EmptyAllWorkingSets();
+            }
+            catch (Exception ex)
+            {
+                Log("[Optimizer] Error applying optimizations: " + ex.Message);
+            }
+        }
+
+        static void UndoOptimizations(bool suspendWasActive, bool hideWasActive, bool killWasActive)
+        {
+            Log("[Optimizer] Undoing optimizations...");
+            try
+            {
+                if (suspendWasActive) ResumeApps();
+                if (hideWasActive) RestoreActiveAppWindows();
+                if (killWasActive) StartExplorer();
+            }
+            catch (Exception ex)
+            {
+                Log("[Optimizer] Error undoing optimizations: " + ex.Message);
+            }
+        }
+
         static void RestoreSystem()
         {
             if (isSystemRestored) return;
@@ -1056,9 +1284,7 @@ namespace RetroBatGameMode
             }
 
             Log("Restoring System...");
-            if (suspendBackgroundApps) ResumeApps();
-            if (hideNonSuspendedWindows) RestoreActiveAppWindows();
-            if (killExplorer) StartExplorer();
+            UndoOptimizations(suspendBackgroundApps, hideNonSuspendedWindows, killExplorer);
             if (showOverlay)
             {
                 ShowNotification(GetLangMessage("restoring"), true);
@@ -1334,6 +1560,10 @@ namespace RetroBatGameMode
 
             foreach (var w in whitelistArgs)
                 safeList.Add(w.Trim().Replace(".exe", ""));
+
+            // ThirdPartyApps must never be suspended: they are the apps we optimize FOR
+            foreach (var thirdParty in GetThirdPartyAppNames())
+                safeList.Add(thirdParty);
 
             var windowedPids = GetWindowedProcessIds();
             var targetProcessNames = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1652,16 +1882,200 @@ namespace RetroBatGameMode
             return false;
         }
 
-        static void WaitForEmulationStationToClose()
+        static System.Collections.Generic.List<string> GetThirdPartyAppNames()
         {
+            var list = new System.Collections.Generic.List<string>();
+            if (!string.IsNullOrEmpty(thirdPartyApps))
+            {
+                string[] apps = thirdPartyApps.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var app in apps)
+                {
+                    string name = app.Trim().Replace(".exe", "");
+                    if (!string.IsNullOrEmpty(name)) list.Add(name);
+                }
+            }
+            return list;
+        }
+
+        static bool IsRetroBatRunning()
+        {
+            return Process.GetProcessesByName("emulationstation").Length > 0 ||
+                   Process.GetProcessesByName("retrobat").Length > 0;
+        }
+
+        static bool IsAnyMonitoredAppRunning()
+        {
+            if (IsRetroBatRunning()) return true;
+            if (!standaloneMonitor) return false;
+            if (!string.IsNullOrEmpty(thirdPartyApps))
+            {
+                string[] apps = thirdPartyApps.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var app in apps)
+                {
+                    string name = app.Trim().Replace(".exe", "");
+                    if (!string.IsNullOrEmpty(name) && Process.GetProcessesByName(name).Length > 0)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        static void RunMonitoringLoop(string iniPath)
+        {
+            DateTime lastRead = File.GetLastWriteTime(iniPath);
             while (true)
             {
-                if (Process.GetProcessesByName("emulationstation").Length == 0 && Process.GetProcessesByName("retrobat").Length == 0)
+                if (requestExit)
                 {
+                    Log("[Monitor] Exit requested (StandaloneMonitor set to false without RetroBat). Shutting down...");
                     break;
                 }
+
+                // In non-standalone mode, only RetroBat/EmulationStation counts.
+                // In standalone mode, any monitored app (RetroBat + ThirdPartyApps) counts.
+                bool anyRunning = IsAnyMonitoredAppRunning();
+
+                if (!anyRunning && isOptimized)
+                {
+                    Log("[Monitor] All monitored applications closed. Undoing optimizations...");
+                    UndoOptimizations(suspendBackgroundApps, hideNonSuspendedWindows, killExplorer);
+                    isOptimized = false;
+                    if (showOverlay) ShowNotification(GetLangMessage("restoring"), true);
+
+                    // In non-standalone mode, exit after undoing (RetroBat was the only reason to run)
+                    if (!standaloneMonitor)
+                    {
+                        Log("[Monitor] Non-standalone mode: exiting after RetroBat/EmulationStation closed.");
+                        break;
+                    }
+                }
+                else if (anyRunning && !isOptimized && enabled)
+                {
+                    Log("[Monitor] Monitored application detected. Applying optimizations...");
+                    if (showOverlay) ShowNotification(GetLangMessage("optimizing"), false);
+                    ApplyOptimizations();
+                    isOptimized = true;
+                }
+
+                // Poll config.ini for live changes
+                try
+                {
+                    DateTime lastWrite = File.GetLastWriteTime(iniPath);
+                    if (lastWrite > lastRead)
+                    {
+                        lastRead = lastWrite;
+                        Thread.Sleep(100); // Small delay to ensure file write is complete
+                        ReloadAndApplyConfig(iniPath, ref lastRead);
+                    }
+                }
+                catch { }
+
                 Thread.Sleep(2000);
             }
+        }
+
+        static void ReloadAndApplyConfig(string iniPath, ref DateTime lastRead)
+        {
+            // Snapshot current values to detect what changed
+            bool wasEnabled = enabled;
+            bool prevKillExplorer = killExplorer;
+            bool prevEmptyWorkingSet = emptyWorkingSet;
+            bool prevSuspendBackgroundApps = suspendBackgroundApps;
+            bool prevHideNonSuspendedWindows = hideNonSuspendedWindows;
+            bool prevShowOverlay = showOverlay;
+            bool prevStandaloneMonitor = standaloneMonitor;
+            string prevWhitelist = whitelist;
+            string prevHideWhitelist = hideWhitelist;
+            string prevThirdPartyApps = thirdPartyApps;
+
+            // Reload all settings from INI
+            enabled = ReadIniBool("Settings", "Enable", enabled, iniPath);
+            killExplorer = ReadIniBool("Settings", "KillExplorer", killExplorer, iniPath);
+            emptyWorkingSet = ReadIniBool("Settings", "EmptyWorkingSet", emptyWorkingSet, iniPath);
+            suspendBackgroundApps = ReadIniBool("Settings", "SuspendBackgroundApps", suspendBackgroundApps, iniPath);
+            hideNonSuspendedWindows = ReadIniBool("Settings", "HideNonSuspendedWindows", hideNonSuspendedWindows, iniPath);
+            showOverlay = ReadIniBool("Settings", "ShowOverlay", showOverlay, iniPath);
+            language = ReadIniString("Settings", "Language", language, iniPath);
+            showConsole = ReadIniBool("Settings", "ShowConsole", showConsole, iniPath);
+            logToFile = ReadIniBool("Settings", "LogToFile", logToFile, iniPath);
+            whitelist = ReadIniString("Settings", "Whitelist", whitelist, iniPath);
+            hideWhitelist = ReadIniString("Settings", "HideWhitelist", hideWhitelist, iniPath);
+            standaloneMonitor = ReadIniBool("Settings", "StandaloneMonitor", standaloneMonitor, iniPath);
+            thirdPartyApps = ReadIniString("Settings", "ThirdPartyApps", thirdPartyApps, iniPath);
+
+            bool anyOptionChanged =
+                killExplorer != prevKillExplorer ||
+                emptyWorkingSet != prevEmptyWorkingSet ||
+                suspendBackgroundApps != prevSuspendBackgroundApps ||
+                hideNonSuspendedWindows != prevHideNonSuspendedWindows ||
+                showOverlay != prevShowOverlay ||
+                whitelist != prevWhitelist ||
+                hideWhitelist != prevHideWhitelist ||
+                thirdPartyApps != prevThirdPartyApps ||
+                standaloneMonitor != prevStandaloneMonitor;
+
+            if (wasEnabled && !enabled)
+            {
+                Log("[Live] Enable set to false. Undoing all optimizations...");
+                UndoOptimizations(prevSuspendBackgroundApps, prevHideNonSuspendedWindows, prevKillExplorer);
+                isOptimized = false;
+                if (showOverlay) ShowNotification(GetLangMessage("restoring"), true);
+
+                // If we just disabled AND no RetroBat/EmulationStation runs AND non-standalone → exit
+                if (!standaloneMonitor && !IsRetroBatRunning())
+                {
+                    Log("[Live] Non-standalone mode and no RetroBat running. Requesting exit.");
+                    requestExit = true;
+                }
+            }
+            else if (!wasEnabled && enabled && IsAnyMonitoredAppRunning())
+            {
+                Log("[Live] Enable set to true. Applying optimizations...");
+                if (showOverlay) ShowNotification(GetLangMessage("optimizing"), false);
+                ApplyOptimizations();
+                isOptimized = true;
+            }
+            else if (enabled && anyOptionChanged && isOptimized)
+            {
+                Log("[Live] Settings changed while enabled. Re-applying optimizations with new values...");
+                UndoOptimizations(prevSuspendBackgroundApps, prevHideNonSuspendedWindows, prevKillExplorer);
+                ApplyOptimizations();
+                // isOptimized remains true
+            }
+            else if (enabled && anyOptionChanged && !isOptimized && IsAnyMonitoredAppRunning())
+            {
+                Log("[Live] Settings changed and a monitored app is now running. Applying optimizations...");
+                if (showOverlay) ShowNotification(GetLangMessage("optimizing"), false);
+                ApplyOptimizations();
+                isOptimized = true;
+            }
+            else
+            {
+                Log("[Live] Config reloaded (no actionable change detected).");
+            }
+
+            // StandaloneMonitor transition true→false: if RetroBat is NOT running, exit the process
+            // because non-standalone mode only makes sense while EmulationStation/RetroBat is active.
+            if (prevStandaloneMonitor && !standaloneMonitor && !IsRetroBatRunning())
+            {
+                if (isOptimized)
+                {
+                    Log("[Live] StandaloneMonitor set to false, no RetroBat running. Undoing optimizations before exit...");
+                    UndoOptimizations(prevSuspendBackgroundApps, prevHideNonSuspendedWindows, prevKillExplorer);
+                    isOptimized = false;
+                    if (showOverlay) ShowNotification(GetLangMessage("restoring"), true);
+                }
+                Log("[Live] StandaloneMonitor set to false and no RetroBat/EmulationStation running. Requesting exit.");
+                requestExit = true;
+            }
+
+            // Update lastRead to the real file time AFTER we finished reading (avoid re-trigger loop)
+            try
+            {
+                lastRead = File.GetLastWriteTime(iniPath);
+                if (lastRead > DateTime.Now) lastRead = DateTime.Now;
+            }
+            catch { }
         }
 
         static string GetLangMessage(string key)
