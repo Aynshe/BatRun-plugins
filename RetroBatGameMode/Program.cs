@@ -1885,6 +1885,7 @@ namespace RetroBatGameMode
         static System.Collections.Generic.List<string> GetThirdPartyAppNames()
         {
             var list = new System.Collections.Generic.List<string>();
+            if (!standaloneMonitor) return list;
             if (!string.IsNullOrEmpty(thirdPartyApps))
             {
                 string[] apps = thirdPartyApps.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
