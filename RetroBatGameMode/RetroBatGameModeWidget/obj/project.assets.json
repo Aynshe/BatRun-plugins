@@ -12272,11 +12272,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
+      "projectUniqueName": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
       "projectName": "RetroBatGameModeWidget",
-      "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
+      "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
       "packagesPath": "C:\\Users\\Win11\\.nuget\\packages\\",
-      "outputPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget\\obj\\",
+      "outputPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\obj\\",
       "projectStyle": "PackageReference",
       "skipContentFileWrite": true,
       "UsingMicrosoftNETSdk": false,

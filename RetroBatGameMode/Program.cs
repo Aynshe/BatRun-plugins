@@ -535,9 +535,52 @@ namespace RetroBatGameMode
 
         static string language = "system";
 
-        static string whitelist = "retrobat, emulationstation, vlc, batrun, BatRunGuardian, GameBar, AttractMode";
+        static string whitelist = "retrobat, emulationstation, retroarch, vlc, batrun, BatRunGuardian, GameBar, AttractMode, code, devenv, steam, steamwebhelper, epicgameslauncher, goggalaxy, ubisoftconnect, origin, amazongames, battlenet, rockstarlauncher, eaapp, bethesdanetlauncher";
 
-        static string hideWhitelist = "retrobat, emulationstation, retroarch, vlc, explorer, batrun, BatRunGuardian, GameBar, AttractMode";
+        static string hideWhitelist = "retrobat, emulationstation, retroarch, vlc, explorer, batrun, BatRunGuardian, GameBar, AttractMode, code, devenv, steam, steamwebhelper, epicgameslauncher, goggalaxy, ubisoftconnect, origin, amazongames, battlenet";
+
+        // v1.5.21: Hard-coded floor guarantees that NO config.ini migration,
+        // empty INI key, or user editing path can ever suspend/hide the
+        // process that we depend on (RetroBat itself) or the OS core.
+        // These are MERGED into the runtime safe-list regardless of what
+        // Whitelist= or HideWhitelist= contains in config.ini. If you really
+        // want to suspend one of these, you have to do it manually outside
+        // the optimiser.
+        static readonly string[] CRITICAL_NEVER_SUSPEND = new string[]
+        {
+            // User-space core
+            "retrobat", "emulationstation", "retrobatgamemode",
+            "batrun", "batrunguardian", "gamebar", "gamebarpresencewriter",
+            "xboxgamebarwidgets",
+            // Windows shell / desktop / input
+            "explorer", "dwm", "shellexperiencehost", "startmenuexperiencehost",
+            "searchhost", "textinputhost", "sihost", "ctfmon",
+            "runtimebroker", "applicationframehost",
+            // OS services / drivers / kernels
+            "system", "idle", "winlogon", "csrss", "smss", "lsass", "svchost",
+            "spoolsv", "fontdrvhost", "taskhostw", "taskmgr", "conhost", "cmd",
+            "gamingservices", "gamingservicesnet",
+            // Dev environment
+            "devenv", "code",
+        };
+
+        static readonly string[] CRITICAL_NEVER_HIDE = new string[]
+        {
+            "retrobatgamemode", "conhost", "system", "idle",
+        };
+
+        // v1.5.21: Game-store frontends that MAY legitimately be running while
+        // a user starts a game (downloads, friends, etc.). Written into the
+        // config.ini on FIRST creation so the user can prune them later by
+        // editing the file. NOT hardcoded at runtime — if the user removes
+        // them from the INI we respect that choice.
+        static readonly string[] DEFAULT_STORE_FRONTENDS = new string[]
+        {
+            "steam", "steamwebhelper", "epicgameslauncher", "epicgames",
+            "goggalaxy", "ubisoftconnect", "uplay", "origin", "originwebhelperservice",
+            "amazongames", "battlenet", "rockstarlauncher", "eaapp",
+            "bethesdanetlauncher", "itch", "hummingbird", "playnite",
+        };
 
         static string thirdPartyApps = "";
 
@@ -1043,6 +1086,10 @@ namespace RetroBatGameMode
 
                 System.Collections.Generic.HashSet<string> suspensionWhite = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+                // v1.5.21: hard floor first, user list on top.
+                foreach (var critical in CRITICAL_NEVER_SUSPEND)
+                    suspensionWhite.Add(critical);
+
                 foreach (var w in suspListArgs)
 
                     suspensionWhite.Add(w.Trim().Replace(".exe", ""));
@@ -1054,6 +1101,10 @@ namespace RetroBatGameMode
                 string[] hideListArgs = hideWhitelist.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
                 System.Collections.Generic.HashSet<string> hideWhite = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                // v1.5.21: hard floor first, user list on top.
+                foreach (var critical in CRITICAL_NEVER_HIDE)
+                    hideWhite.Add(critical);
 
                 foreach (var w in hideListArgs)
 
@@ -1073,13 +1124,14 @@ namespace RetroBatGameMode
 
                 // We exclude "dwm" and other system components so that if they have visible windows and are not in hideWhitelist, they CAN be hidden as requested.
 
-                System.Collections.Generic.HashSet<string> criticalSystemList = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                // v1.5.21: critical-system floor is the same CRITICAL_NEVER_HIDE
+                // constant as above. Kept as a separate HashSet to preserve the
+                // existing shouldHide semantics (only the in-line critical block
+                // is checked here, not the wider hideWhite floor).
+                System.Collections.Generic.HashSet<string> criticalSystemList = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                {
-
-                    "retrobatgamemode", "conhost", "system", "idle"
-
-                };
+                foreach (var critical in CRITICAL_NEVER_HIDE)
+                    criticalSystemList.Add(critical);
 
 
 
@@ -2137,6 +2189,13 @@ namespace RetroBatGameMode
 
                     string curHideWhitelist = ReadIniString("Settings", "HideWhitelist", hideWhitelist, iniPath);
 
+                    // v1.5.21: hard guarantee — if the INI Whitelist/HideWhitelist
+                    // key exists but is empty (user edited it out, or nasty old
+                    // migration), re-inject the CRITICAL_NEVER_* floor so a load
+                    // can never suspend/hide the optimiser or the OS shell.
+                    curWhitelist = EnsureFloorInList(curWhitelist, CRITICAL_NEVER_SUSPEND, "Whitelist");
+                    curHideWhitelist = EnsureFloorInList(curHideWhitelist, CRITICAL_NEVER_HIDE, "HideWhitelist");
+
                     StandaloneMode curStandaloneMonitor = ParseStandaloneMode(ReadIniString("Settings", "StandaloneMonitor", StandaloneModeToString(standaloneMonitor), iniPath));
 
                     string curThirdPartyApps = ReadIniString("Settings", "ThirdPartyApps", thirdPartyApps, iniPath);
@@ -2200,6 +2259,47 @@ namespace RetroBatGameMode
         }
 
 
+
+        // v1.5.21: ensure a Comma-separated whitelist has every entry from the
+        // floor array present. Any missing critical name is appended (case-fold
+        // dedup). The returned string is the union, sorted for stability.
+        // If `current` is null/empty we still seed the floor so a wiped INI
+        // recovers a non-empty list.
+        static string EnsureFloorInList(string current, string[] floor, string label)
+        {
+            if (floor == null || floor.Length == 0) return current ?? "";
+
+            System.Collections.Generic.HashSet<string> set =
+                new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (!string.IsNullOrEmpty(current))
+            {
+                foreach (var part in current.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var clean = part.Trim().Replace(".exe", "");
+                    if (clean.Length > 0) set.Add(clean);
+                }
+            }
+
+            int added = 0;
+            foreach (var critical in floor)
+            {
+                if (string.IsNullOrEmpty(critical)) continue;
+                var c = critical.Trim().Replace(".exe", "");
+                if (!set.Contains(c))
+                {
+                    set.Add(c);
+                    added++;
+                }
+            }
+
+            if (added > 0)
+                Log("[Migration] " + label + ": re-injected " + added + " critical name(s) that were missing from the INI.");
+
+            var ordered = new System.Collections.Generic.List<string>(set);
+            ordered.Sort(StringComparer.OrdinalIgnoreCase);
+            return string.Join(", ", ordered);
+        }
 
         static void EnsureConfigWithCommentsWrite(string iniPath,
 
@@ -2984,7 +3084,7 @@ namespace RetroBatGameMode
             {
                 var asmNameTmp = System.Reflection.Assembly.GetExecutingAssembly().GetName();
                 var asmV = asmNameTmp.Version;
-                configFormatVersion = asmV != null ? ("v" + asmV.ToString()) : "v1.5.70.0";
+                configFormatVersion = asmV != null ? ("v" + asmV.ToString()) : "v1.5.71.0";
             }
             catch (Exception ex) { Log("[Config] version resolve error: " + ex.Message); }
 
@@ -3196,10 +3296,10 @@ namespace RetroBatGameMode
 
             var asmVersion = asmName.Version;
 
-            string versionStr = asmVersion != null ? "v" + asmVersion.ToString(3) : "v1.5.70";
+            string versionStr = asmVersion != null ? "v" + asmVersion.ToString(3) : "v1.5.71";
 
             // Persist the full version for config.ini format-marker comparisons.
-            configFormatVersion = asmVersion != null ? "v" + asmVersion.ToString() : "v1.5.70.0";
+            configFormatVersion = asmVersion != null ? "v" + asmVersion.ToString() : "v1.5.71.0";
 
             Log("RetroBat Game Mode Optimizer Started (" + versionStr + ")");
 
@@ -5153,21 +5253,14 @@ namespace RetroBatGameMode
 
             string[] whitelistArgs = whitelist.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
-            System.Collections.Generic.HashSet<string> safeList = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            // v1.5.21: CRITICAL_NEVER_SUSPEND is a hard floor — these processes
+            // can NEVER be suspended regardless of what the INI Whitelist holds
+            // (even if a bad migration emptied it). The user-list is merged on
+            // top, never replaces the floor.
+            System.Collections.Generic.HashSet<string> safeList = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            {
-
-                "explorer", "emulationstation", "retroarch", "retrobat", "retrobatgamemode", "cmd", "conhost", "taskmgr", "devenv",
-
-                "textinputhost", "searchhost", "startmenuexperiencehost", "shellexperiencehost", "sihost", "ctfmon", "dwm", "taskhostw",
-
-                "runtimebroker", "applicationframehost", "systemsettings", "system", "idle", "winlogon", "csrss", "smss", "lsass",
-
-                "spoolsv", "svchost", "fontdrvhost", "widgets", "gamingservices", "gamingservicesnet", "msedge", "edge", "attractmode",
-
-                "batrun","batrunguardian", "gamebar"
-
-            };
+            foreach (var critical in CRITICAL_NEVER_SUSPEND)
+                safeList.Add(critical);
 
 
 

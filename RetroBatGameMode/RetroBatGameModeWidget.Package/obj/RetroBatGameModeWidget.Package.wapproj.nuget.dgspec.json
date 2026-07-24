@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj": {}
+    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj": {}
   },
   "projects": {
-    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj": {
+    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
+        "projectUniqueName": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
         "projectName": "RetroBatGameModeWidget.Package",
-        "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
+        "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
         "packagesPath": "C:\\Users\\Win11\\.nuget\\packages\\",
-        "outputPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget.Package\\obj\\",
+        "outputPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\obj\\",
         "projectStyle": "PackageReference",
         "UsingMicrosoftNETSdk": false,
         "fallbackFolders": [
@@ -34,8 +34,8 @@
             "framework": "uap10.0.17763",
             "targetAlias": "net451",
             "projectReferences": {
-              "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj": {
-                "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj"
+              "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj": {
+                "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj"
               }
             }
           }
@@ -97,14 +97,14 @@
         }
       }
     },
-    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj": {
+    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
+        "projectUniqueName": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
         "projectName": "RetroBatGameModeWidget",
-        "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
+        "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
         "packagesPath": "C:\\Users\\Win11\\.nuget\\packages\\",
-        "outputPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode-v1.5.7_source_clean_fix_mode_hide_taskbar_regedit_B\\RetroBatGameModeWidget\\obj\\",
+        "outputPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\obj\\",
         "projectStyle": "PackageReference",
         "skipContentFileWrite": true,
         "UsingMicrosoftNETSdk": false,
