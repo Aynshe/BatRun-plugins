@@ -1,0 +1,77 @@
+<Page
+    x:Class="RetroBatGameModeWidget.AppsListPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="12" Background="#1F1F23">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+       </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+           </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" x:Name="BackButton" Content="Back" Click="BackButton_Click"
+                    Height="32" Padding="8,0" FontSize="12" />
+            <TextBlock Grid.Column="1" Text="Targeted apps"
+                       FontSize="14" FontWeight="SemiBold" Foreground="White"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Button Grid.Column="2" x:Name="RefreshButton" Content="Refresh" Click="RefreshButton_Click"
+                    Height="32" Padding="8,0" FontSize="12" />
+       </Grid>
+
+        <TextBlock Grid.Row="1" x:Name="StatusText"
+                   Text=""
+                   FontSize="11" Foreground="#9AA0AA"
+                   HorizontalAlignment="Stretch" TextWrapping="Wrap"
+                   Margin="0,2,0,4" />
+
+        <TextBlock Grid.Row="2" x:Name="EmptyText"
+                   Text="No targeted app yet. Use the Target button or edit config.ini."
+                   FontSize="12" Foreground="#9AA0AA"
+                   HorizontalAlignment="Center" Margin="0,8,0,8"
+                   Visibility="Visible" />
+
+        <ScrollViewer Grid.Row="3"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollMode="Disabled"
+                      Margin="0,4,0,0">
+            <ItemsControl x:Name="AppsList">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Vertical" />
+                   </ItemsPanelTemplate>
+               </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Height="42" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                           </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding}"
+                                        FontSize="13" Foreground="White"
+                                        VerticalAlignment="Center" Margin="4,0" />
+                            <Button Grid.Column="1" Content="Remove" Click="RemoveButton_Click"
+                                     Tag="{Binding}"
+                                     Height="28" Width="70"
+                                     FontSize="11"
+                                     Foreground="White"
+                                     Background="#F43F5E"
+                                     VerticalAlignment="Center" />
+                       </Grid>
+                   </DataTemplate>
+               </ItemsControl.ItemTemplate>
+           </ItemsControl>
+       </ScrollViewer>
+   </Grid>
+</Page>

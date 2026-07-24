@@ -1,0 +1,1 @@
+\emulationstation\.emulationstation\scripts\start\RetroBatGameMode.bat

@@ -1,3 +1,0 @@
-\plugins\RetroBatGameMode\config.ini
-\plugins\RetroBatGameMode\RetroBatGameMode.log
-\emulationstation\.emulationstation\scripts\start\RetroBatGameMode.bat

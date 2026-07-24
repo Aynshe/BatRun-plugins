@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- EN: Minimum Visual Studio version required for WAP projects. -->
+  <!-- FR: Version minimale de Visual Studio requise pour les projets WAP. -->
+  <PropertyGroup Condition="'$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '15.0'">
+    <VisualStudioVersion>15.0</VisualStudioVersion>
+  </PropertyGroup>
+
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <!-- EN: Path to DesktopBridge MSBuild targets (WAP project infrastructure). -->
+  <!-- FR: Chemin vers les targets MSBuild DesktopBridge (infrastructure projet WAP). -->
+  <PropertyGroup>
+    <WapProjPath Condition="'$(WapProjPath)'==''">$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\</WapProjPath>
+  </PropertyGroup>
+  <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.props" />
+
+  <PropertyGroup>
+    <ProjectGuid>{C1D2E3F4-A5B6-7890-CDEF-012345678901}</ProjectGuid>
+    <TargetPlatformVersion>10.0.26100.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <!-- EN: Signing enabled — uses the self-signed PFX for local sideload testing. -->
+    <!-- FR: Signature activée — utilise le certificat auto-signé pour tests locaux. -->
+    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+    <NoWarn>$(NoWarn);NU1702</NoWarn>
+    <!-- EN: Entry point project — the actual UWP widget csproj. -->
+    <!-- FR: Projet de départ — le vrai csproj UWP du widget. -->
+    <EntryPointProjectUniqueName>..\RetroBatGameModeWidget\RetroBatGameModeWidget.csproj</EntryPointProjectUniqueName>
+    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+    <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
+    <!-- EN: Disable test artifacts generation to prevent locked folder errors. -->
+    <!-- FR: Désactiver la génération des artefacts de test pour éviter les dossiers verrouillés. -->
+    <GenerateTestArtifacts>False</GenerateTestArtifacts>
+    <AppxBundlePlatforms>x64</AppxBundlePlatforms>
+    <HoursBetweenUpdateChecks>720</HoursBetweenUpdateChecks>
+    <!-- EN: Auto-generate a self-signed certificate if none exists. -->
+    <!-- FR: Génère automatiquement un certificat auto-signé s'il n'en existe pas. -->
+    <GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
+    <PackageCertificateKeyFile>RetroBatGameModeWidget.Package_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <AppxBundle>Never</AppxBundle>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <DefaultLanguage>en-US</DefaultLanguage>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <DefaultLanguage>en-US</DefaultLanguage>
+  </PropertyGroup>
+
+  <!-- EN: Package manifest used by this WAP project for the final MSIX. -->
+  <!-- FR: Manifest de package utilisé par ce projet WAP pour le MSIX final. -->
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="RetroBatGameModeWidget.Package_TemporaryKey.pfx" />
+  </ItemGroup>
+
+  <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />
+
+  <!--
+    EN: Override _GenerateAppxPackageRecipeFile to bypass APPX1673 (PhoneIdentity check).
+        Hardcoded in Microsoft.Build.AppxPackage.dll — fires incorrectly for desktop-only
+        UWP packages. Must be placed AFTER the targets Import.
+    FR: Override pour contourner APPX1673 — hardcodé dans Microsoft.Build.AppxPackage.dll.
+        Doit être placé APRÈS l'Import des targets.
+  -->
+  <Target Name="_GenerateAppxPackageRecipeFile"
+          DependsOnTargets="_CalculateInputsForGenerateAppxPackageRecipe">
+    <!-- no-op: bypass APPX1673 PhoneIdentity check — desktop-only widget, no Store submission -->
+  </Target>
+
+  <!-- EN: Reference to the UWP widget project — WAP wraps it into the MSIX. -->
+  <!-- FR: Référence au projet UWP du widget — WAP l'emballe dans le MSIX. -->
+  <ItemGroup>
+    <ProjectReference Include="..\RetroBatGameModeWidget\RetroBatGameModeWidget.csproj" />
+  </ItemGroup>
+
+</Project>

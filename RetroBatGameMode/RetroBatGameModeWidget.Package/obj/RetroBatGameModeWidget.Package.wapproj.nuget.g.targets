@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Import Project="$(NuGetPackageRoot)system.text.json\10.0.0\buildTransitive\netstandard2.0\System.Text.Json.targets" Condition="Exists('$(NuGetPackageRoot)system.text.json\10.0.0\buildTransitive\netstandard2.0\System.Text.Json.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.web.webview2\1.0.2849.39\buildTransitive\Microsoft.Web.WebView2.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.web.webview2\1.0.2849.39\buildTransitive\Microsoft.Web.WebView2.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.gaming.xboxgamebar\7.3.2506120\buildTransitive\Microsoft.Gaming.XboxGameBar.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.gaming.xboxgamebar\7.3.2506120\buildTransitive\Microsoft.Gaming.XboxGameBar.targets')" />
+  </ImportGroup>
+</Project>

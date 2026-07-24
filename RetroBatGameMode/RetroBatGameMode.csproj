@@ -9,11 +9,64 @@
     <UseWindowsForms>true</UseWindowsForms>
 
     <!-- Versioning: change this number for each release -->
-    <VersionPrefix>1.2.0</VersionPrefix>
-    <AssemblyVersion>1.2.0.0</AssemblyVersion>
-    <FileVersion>1.2.0.0</FileVersion>
+    <VersionPrefix>1.5.70</VersionPrefix>
+    <AssemblyVersion>1.5.70.0</AssemblyVersion>
+    <FileVersion>1.5.70.0</FileVersion>
     <Company>RetroBat</Company>
     <Product>RetroBat Game Mode</Product>
-  </PropertyGroup>
+    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
+</PropertyGroup>
 
+<!-- The UWP sibling project lives next to this WinForms project but is NOT
+     included here. It builds under its own .csproj + .sln, and the user
+     produces a .msixbundle which is then deployed by Add-AppxPackage. -->
+
+<!-- Preserve the .cs/.xaml exclusions but re-include the install scripts and
+     MSIX packages that must ship next to the optimizer exe in a sibling
+     RetroBatGameModeWidget\ folder, so the backend can drive the install/uninstall
+     by invoking those scripts. -->
+<ItemGroup>
+  <Compile Remove="RetroBatGameModeWidget\**\*.cs" />
+  <Page Remove="RetroBatGameModeWidget\**\*.xaml" />
+  <ApplicationDefinition Remove="RetroBatGameModeWidget\**\*.xaml" />
+  <EmbeddedResource Remove="RetroBatGameModeWidget\**\*.resx" />
+</ItemGroup>
+
+<ItemGroup>
+  <None Include="RetroBatGameModeWidget\Install_Widget_Package.bat">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Link>RetroBatGameModeWidget\Install_Widget_Package.bat</Link>
+  </None>
+  <None Include="RetroBatGameModeWidget\Install_Widget_Package.ps1">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Link>RetroBatGameModeWidget\Install_Widget_Package.ps1</Link>
+  </None>
+  <None Include="RetroBatGameModeWidget\Uninstall_Widget_Package.bat">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Link>RetroBatGameModeWidget\Uninstall_Widget_Package.bat</Link>
+  </None>
+  <None Include="RetroBatGameModeWidget\Build_WidgetMSIX.bat">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Link>RetroBatGameModeWidget\Build_WidgetMSIX.bat</Link>
+  </None>
+  <None Include="RetroBatGameModeWidget\RetroBatGameModeWidget.Package_*.msix">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Link>RetroBatGameModeWidget\%(Filename)%(Extension)</Link>
+  </None>
+  <None Include="RetroBatGameModeWidget\RetroBatGameModeWidget_*.msix">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Link>RetroBatGameModeWidget\%(Filename)%(Extension)</Link>
+  </None>
+  <None Include="RetroBatGameModeWidget\RetroBatGameModeWidget_*.msixbundle">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Link>RetroBatGameModeWidget\%(Filename)%(Extension)</Link>
+  </None>
+  <!-- Keep older top-level msix lets for legacy install layout (back-compat). -->
+  <None Include="RetroBatGameModeWidget_*.msixbundle">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+  <None Include="RetroBatGameModeWidget_*.msix">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+</ItemGroup>
 </Project>
