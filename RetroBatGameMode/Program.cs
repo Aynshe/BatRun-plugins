@@ -598,6 +598,10 @@ namespace RetroBatGameMode
 
         static Mutex? appMutex = null;
 
+        static System.Net.HttpListener? httpListener = null;
+
+        static readonly object httpListenerLock = new object();
+
 
 
         static bool IsProcessElevated(int pid)
@@ -1541,6 +1545,77 @@ namespace RetroBatGameMode
 
 
 
+            // v1.5.75: check for restart sentinel BEFORE attempting any
+            // restoration. If found, the parent exited via SelfRestartBackend
+            // and a fresh instance is already running (or about to). We must
+            // NOT restore because the new instance is the source of truth and
+            // the parent had already called UndoOptimizations before exit.
+            try
+            {
+                string sentinelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "restart_sentinel_" + parentPid + ".tmp");
+                if (File.Exists(sentinelPath))
+                {
+                    try { File.Delete(sentinelPath); } catch { }
+                    Log("[Watchdog] Restart sentinel detected for PID " + parentPid + ". Self-restart in progress, skipping restoration.");
+                    return;
+                }
+            }
+            catch (Exception sex) { Log("[Watchdog] Sentinel check failed: " + sex.Message); }
+
+            // v1.5.81: race-free child-ready handoff. The restart_sentinel_*.tmp
+            // file is one-shot and gets cleaned up by the new child instance at
+            // startup, which races with the watchdog check above (sometimes the
+            // child cleans first, watchdog sees nothing, falls through to bogus
+            // restoration). As a SECOND signal, the new child writes
+            // child_ready_<newpid>.tmp once it has reached a stable state.
+            // If we find any child_ready_*.tmp file we know a fresh healthy
+            // instance has taken over and we must skip restoration entirely.
+            try
+            {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                // Briefly wait up to 3s for the child to write its ready sentinel
+                // (it writes near the end of its own Main init).
+                var readyFiles = Directory.GetFiles(baseDir, "child_ready_*.tmp");
+                DateTime waitDeadline = DateTime.Now.AddSeconds(3);
+                while (readyFiles.Length == 0 && DateTime.Now < waitDeadline)
+                {
+                    Thread.Sleep(200);
+                    readyFiles = Directory.GetFiles(baseDir, "child_ready_*.tmp");
+                }
+
+                if (readyFiles.Length > 0)
+                {
+                    foreach (var f in readyFiles)
+                    {
+                        try { File.Delete(f); } catch { }
+                    }
+                    Log("[Watchdog] Child-ready sentinel detected (" + readyFiles.Length + " file(s)). Fresh backend instance is healthy, skipping restoration.");
+                    return;
+                }
+            }
+            catch (Exception crex) { Log("[Watchdog] Child-ready check failed: " + crex.Message); }
+
+            // v1.5.81: do NOT restore if the INI itself says Enable=false. A
+            // user who explicitly disabled optimizations should never see a
+            // watchdog-driven restoration — it would only resume processes that
+            // were never actually suspended by THIS process, creating the
+            // "phantom restoration" bug (chrome windows coming to the
+            // foreground, PIP video plugin glitching, etc.). Treat Enable=false
+            // as an explicit "nothing to restore" signal.
+            try
+            {
+                string iniPathForCheck = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.ini");
+                bool iniEnable = ReadIniBool("Settings", "Enable", true, iniPathForCheck);
+                if (!iniEnable)
+                {
+                    Log("[Watchdog] INI Enable=false. No active optimizations to restore. Watchdog exiting.");
+                    return;
+                }
+            }
+            catch (Exception iex) { Log("[Watchdog] INI Enable check failed: " + iex.Message); }
+
+
+
             Log("[Watchdog] Parent process terminated abnormally! Initiating system state restoration...");
 
 
@@ -2301,6 +2376,79 @@ namespace RetroBatGameMode
             return string.Join(", ", ordered);
         }
 
+        // v1.5.83: standalone config.ini migration. Called whenever the
+        // running backend's ConfigFormatVersion differs from the on-disk
+        // version (or the on-disk version is missing entirely). Reads every
+        // existing user value, applies the CRITICAL_NEVER_* floor guarantee
+        // to Whitelist/HideWhitelist, then rewrites the whole file via
+        // EnsureConfigWithCommentsWrite so the version marker, comment
+        // blocks, and any newly-added options are all refreshed in one pass.
+        //
+        // User intent wins: existing values are preserved verbatim. The
+        // only mutating side-effect is the floor injection (which is the
+        // documented safety net for a wiped whitelist).
+        static void MigrateConfigIniPreservingValues(string iniPath)
+        {
+            try
+            {
+                // Legacy key migration: EnableOptimization → Enable
+                bool migratedEnabled = enabled;
+                string legacyVal = ReadIniString("Settings", "EnableOptimization", "", iniPath);
+                if (!string.IsNullOrEmpty(legacyVal))
+                {
+                    migratedEnabled = legacyVal.ToLower() == "true" || legacyVal == "1" || legacyVal == "yes";
+                }
+
+                // Read every existing value from the on-disk file so we don't
+                // clobber anything the user edited.
+                bool curKillExplorer = ReadIniBool("Settings", "KillExplorer", killExplorer, iniPath);
+                bool curEmptyWorkingSet = ReadIniBool("Settings", "EmptyWorkingSet", emptyWorkingSet, iniPath);
+                bool curSuspendBackgroundApps = ReadIniBool("Settings", "SuspendBackgroundApps", suspendBackgroundApps, iniPath);
+                bool curShowOverlay = ReadIniBool("Settings", "ShowOverlay", showOverlay, iniPath);
+                string curLanguage = ReadIniString("Settings", "Language", language, iniPath);
+                bool curAutoStartWithRetroBat = ReadIniBool("Settings", "AutoStartWithRetroBat", autoStartWithRetroBat, iniPath);
+                bool curShowConsole = ReadIniBool("Settings", "ShowConsole", showConsole, iniPath);
+                bool curLogToFile = ReadIniBool("Settings", "LogToFile", logToFile, iniPath);
+                string curWhitelist = ReadIniString("Settings", "Whitelist", whitelist, iniPath);
+                bool curHideNonSuspendedWindows = ReadIniBool("Settings", "HideNonSuspendedWindows", hideNonSuspendedWindows, iniPath);
+                string curHideWhitelist = ReadIniString("Settings", "HideWhitelist", hideWhitelist, iniPath);
+
+                // v1.5.21: floor injection (safety net for wiped whitelists)
+                curWhitelist = EnsureFloorInList(curWhitelist, CRITICAL_NEVER_SUSPEND, "Whitelist");
+                curHideWhitelist = EnsureFloorInList(curHideWhitelist, CRITICAL_NEVER_HIDE, "HideWhitelist");
+
+                StandaloneMode curStandaloneMonitor = ParseStandaloneMode(
+                    ReadIniString("Settings", "StandaloneMonitor", StandaloneModeToString(standaloneMonitor), iniPath));
+                string curThirdPartyApps = ReadIniString("Settings", "ThirdPartyApps", thirdPartyApps, iniPath);
+                bool curGameBarWidgetEnabled = ReadIniBool("Settings", "GameBarWidgetEnabled", gameBarWidgetEnabled, iniPath);
+                bool curTaskbarAutoHide = ReadIniBool("Settings", "TaskbarAutoHide", taskbarAutoHide, iniPath);
+                bool curTaskbarAutoHideMode = ReadIniBool("Settings", "TaskbarAutoHideMode", taskbarAutoHideMode, iniPath);
+                int curTargetTimer = ReadIniInt("Settings", "TargetTimer", targetTimer, iniPath);
+
+                // Preserve runtime state keys (SuspendedApps etc.) so a
+                // restart mid-optimization doesn't lose track.
+                string curSuspendedApps = ReadIniString("Settings", "SuspendedApps", "", iniPath);
+                string curLastSuspendedApps = ReadIniString("Settings", "LastSuspendedApps", "", iniPath);
+                string curHiddenApps = ReadIniString("Settings", "HiddenApps", "", iniPath);
+                string curLastHiddenApps = ReadIniString("Settings", "LastHiddenApps", "", iniPath);
+
+                EnsureConfigWithCommentsWrite(iniPath, migratedEnabled, false,
+                    curKillExplorer, curEmptyWorkingSet, curSuspendBackgroundApps, curShowOverlay,
+                    curLanguage, curAutoStartWithRetroBat, curShowConsole, curLogToFile,
+                    curWhitelist, curHideNonSuspendedWindows, curHideWhitelist,
+                    curStandaloneMonitor, curThirdPartyApps, curTargetTimer,
+                    curSuspendedApps, curLastSuspendedApps, curHiddenApps, curLastHiddenApps,
+                    curGameBarWidgetEnabled, curTaskbarAutoHide, curTaskbarAutoHideMode,
+                    ReadIniString("Settings", "EmergencyRestore", "0", iniPath));
+
+                Log("[Migration] config.ini regenerated with current user values preserved.");
+            }
+            catch (Exception ex)
+            {
+                Log("[Migration] error: " + ex.Message);
+            }
+        }
+
         static void EnsureConfigWithCommentsWrite(string iniPath,
 
             bool writeEnabled, bool isFresh,
@@ -2947,53 +3095,109 @@ namespace RetroBatGameMode
 
             }
 
+            // v1.5.79: SelfRestartBackend() passes --child so the freshly spawned
+            // instance knows to skip BOTH the singleton process-count check AND
+            // the Mutex singleton check. The parent is still alive (and still owns
+            // the named Mutex) during its 500ms pre-exit sleep, so without these
+            // skips the child would silently exit. The watchdog child (also
+            // running as RetroBatGameMode.exe under --watchdog) is also counted
+            // as "another instance" by Process.GetProcessesByName, so we MUST skip
+            // the singleton check entirely for the --child path. We trust the
+            // caller (only SelfRestartBackend passes --child) and let the singleton
+            // check still guard us against real duplicates from any other entry.
+            bool spawnedAsChild = args.Length >= 1 && args[0] == "--child";
+
 
 
             // Prevent multiple instances using a robust Process name check (ignoring the watchdog)
 
-            try
+            if (!spawnedAsChild)
 
             {
 
-                var currentProcess = Process.GetCurrentProcess();
-
-                var mainModule = currentProcess.MainModule;
-
-                if (mainModule != null && !string.IsNullOrEmpty(mainModule.FileName))
+                try
 
                 {
 
-                    string processName = Path.GetFileNameWithoutExtension(mainModule.FileName);
+                    var currentProcess = Process.GetCurrentProcess();
 
-                    if (Process.GetProcessesByName(processName).Length > 1)
+                    var mainModule = currentProcess.MainModule;
+
+                    if (mainModule != null && !string.IsNullOrEmpty(mainModule.FileName))
 
                     {
 
-                        return; // Exit immediately if another main instance of the same exe is running
+                        string processName = Path.GetFileNameWithoutExtension(mainModule.FileName);
+
+                        // v1.5.78: count processes OTHER than ourselves. The previous
+                        // `Process.GetProcessesByName(...).Length > 1` check counted
+                        // both the spawning parent and the freshly-spawned child
+                        // during the 500ms SelfRestartBackend() sleep window, so
+                        // the child always saw "2 processes" and silently exited
+                        // before even reaching the Mutex check. Excluding our own
+                        // PID eliminates the race entirely.
+
+                        int otherInstances = 0;
+
+                        foreach (var p in Process.GetProcessesByName(processName))
+
+                        {
+
+                            try { if (p.Id != currentProcess.Id) otherInstances++; } catch { }
+
+                        }
+
+                        if (otherInstances > 0)
+
+                        {
+
+                            return; // Another instance already running (parent or sibling)
+
+                        }
 
                     }
 
                 }
 
+                catch { }
+
             }
 
-            catch { }
 
 
-
-            // Double check using Mutex for system-wide atomicity
+            // Double check using Mutex for system-wide atomicity. Skipped when
+            // --child is passed (see comment near the args parsing above).
 
             bool createdNew;
 
-            appMutex = new Mutex(true, "RetroBatGameModeMutex", out createdNew);
-
-            if (!createdNew)
+            if (spawnedAsChild)
 
             {
 
-                appMutex.Dispose();
+                // No-op: trust the parent SelfRestartBackend path. The Mutex is
+                // already owned by the (about-to-die) parent; attempting to acquire
+                // it would deadlock-style-fail (createdNew=false) and the child
+                // would silently exit.
 
-                return; // Already running
+                createdNew = true;
+
+            }
+
+            else
+
+            {
+
+                appMutex = new Mutex(true, "RetroBatGameModeMutex", out createdNew);
+
+                if (!createdNew)
+
+                {
+
+                    appMutex.Dispose();
+
+                    return; // Already running
+
+                }
 
             }
 
@@ -3084,17 +3288,34 @@ namespace RetroBatGameMode
             {
                 var asmNameTmp = System.Reflection.Assembly.GetExecutingAssembly().GetName();
                 var asmV = asmNameTmp.Version;
-                configFormatVersion = asmV != null ? ("v" + asmV.ToString()) : "v1.5.71.0";
+                configFormatVersion = asmV != null ? ("v" + asmV.ToString()) : "v1.5.83.0";
             }
             catch (Exception ex) { Log("[Config] version resolve error: " + ex.Message); }
 
-            // v1.5.19: detect config.ini format drift and force a regeneration
-            // when the running backend version differs from the one that wrote
-            // the file. The marker ConfigFormatVersion=v<assemblyVersion> is
-            // appended at the top of generated files, so the user always
-            // gets the latest comments/keys without losing their values.
+            // v1.5.19 + v1.5.83: detect config.ini format drift and force a
+            // regeneration when the running backend version differs from the
+            // one that wrote the file. The marker `ConfigFormatVersion=v<assemblyVersion>`
+            // is appended at the top of generated files, so the user always
+            // gets the latest comments/keys without losing their saved values.
+            //
+            // The migration is unconditional: a version mismatch ALWAYS means
+            // the file was written by an older backend, so we ALWAYS rewrite
+            // it (preserving current values + adding any new options + refreshing
+            // the comment block to match the running version).
+            //
+            // BUG history:
+            //   v1.5.19: original logic, called EnsureConfigWithComments which
+            //            internally checked `needsMigration=true` (sentinel
+            //            option missing). On a clean config.ini where every key
+            //            was already present, the version marker stayed stuck
+            //            on the old version forever.
+            //   v1.5.81: regex-based fallback AFTER EnsureConfigWithComments.
+            //            Worked but was a hack.
+            //   v1.5.83: drive the migration directly from this block — no
+            //            dependency on EnsureConfigWithComments' internal guard.
             try
             {
+                bool needsRegen = false;
                 if (File.Exists(iniPath))
                 {
                     string onDisk = ReadIniString("Settings", "ConfigFormatVersion", "", iniPath);
@@ -3102,12 +3323,21 @@ namespace RetroBatGameMode
                     {
                         Log("[Config] version mismatch: on-disk='" + (onDisk ?? "<none>")
                             + "', current='" + configFormatVersion + "' -> regenerating config.ini.");
-                        EnsureConfigWithComments(iniPath);
+                        needsRegen = true;
                     }
                 }
                 else
                 {
-                    EnsureConfigWithComments(iniPath);
+                    needsRegen = true;
+                }
+
+                if (needsRegen)
+                {
+                    // Read every existing value the user might have edited,
+                    // then rewrite the whole file with fresh comments and the
+                    // new ConfigFormatVersion. New options get their default
+                    // values; existing values are preserved (user intent wins).
+                    MigrateConfigIniPreservingValues(iniPath);
                 }
             }
             catch (Exception ex) { Log("[Config] regen check error: " + ex.Message); }
@@ -3296,12 +3526,55 @@ namespace RetroBatGameMode
 
             var asmVersion = asmName.Version;
 
-            string versionStr = asmVersion != null ? "v" + asmVersion.ToString(3) : "v1.5.71";
+            string versionStr = asmVersion != null ? "v" + asmVersion.ToString(3) : "v1.5.83";
 
             // Persist the full version for config.ini format-marker comparisons.
-            configFormatVersion = asmVersion != null ? "v" + asmVersion.ToString() : "v1.5.71.0";
+            configFormatVersion = asmVersion != null ? "v" + asmVersion.ToString() : "v1.5.83.0";
 
             Log("RetroBat Game Mode Optimizer Started (" + versionStr + ")");
+
+
+
+            // v1.5.75: clean any stale restart sentinels left over from a
+            // previous run that may have crashed between sentinel write and
+            // Environment.Exit. We pattern-match `restart_sentinel_*.tmp` in
+            // our base directory and delete them all — they're meant to be
+            // one-shot, lifetime = single restart cycle.
+            try
+            {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                foreach (var stale in Directory.GetFiles(baseDir, "restart_sentinel_*.tmp"))
+                {
+                    try { File.Delete(stale); Log("[Backend] Cleaned stale restart sentinel: " + stale); } catch { }
+                }
+                // v1.5.81: also clean any stale child_ready_*.tmp from previous
+                // runs (the watchdog should have consumed them, but defensive).
+                foreach (var stale in Directory.GetFiles(baseDir, "child_ready_*.tmp"))
+                {
+                    try { File.Delete(stale); Log("[Backend] Cleaned stale child_ready: " + stale); } catch { }
+                }
+            }
+            catch { }
+
+
+
+            // v1.5.81: if we were spawned as a --child (SelfRestartBackend path),
+            // announce ourselves to the watchdog with a "ready" sentinel so it
+            // skips its bogus system-state restoration. Without this, the
+            // watchdog reads INI keys written by the *previous* instance before
+            // we (the new healthy instance) had a chance to update them, and
+            // ends up resuming chrome/notepad windows that are NOT suspended.
+            // Race window: ~5s between parent Environment.Exit and watchdog check.
+            if (spawnedAsChild)
+            {
+                try
+                {
+                    string readyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "child_ready_" + Process.GetCurrentProcess().Id + ".tmp");
+                    File.WriteAllText(readyPath, DateTime.Now.ToString("o"));
+                    Log("[Backend] Child ready sentinel written: " + readyPath);
+                }
+                catch (Exception rex) { Log("[Backend] Child ready sentinel write failed: " + rex.Message); }
+            }
 
 
 
@@ -3716,6 +3989,138 @@ namespace RetroBatGameMode
         }
 
 
+
+        // v1.5.74: self-restart helper. Used after Disable to force a fresh
+        // process re-read of all INI state, eliminating any possible drift
+        // between the runtime flags and what was last persisted. The caller
+        // MUST have already called UndoOptimizations() so the system is in a
+        // clean state before the restart — otherwise the watchdog would
+        // attempt its own (less precise) restoration path.
+        //
+        // Sequence:
+        //   1. Signal cleanExitEvent so the existing watchdog exits without
+        //      trying to restore (we've already undone everything).
+        //   2. Spawn a brand-new instance of the same .exe (no --watchdog arg,
+        //      it will spawn its own).
+        //   3. Environment.Exit(0) — terminates this process. The new one
+        //      takes over within ~1s.
+        // Sentinel file written right before Environment.Exit to signal the
+        // watchdog that the parent exited cleanly (self-restart). The
+        // watchdog reads it FIRST, before any restore logic, and skips the
+        // whole restoration branch if present. The new instance deletes the
+        // file as part of its startup cleanup.
+        // Named with the parent PID to avoid stale signals from prior runs.
+        static string GetRestartSentinelPath()
+        {
+            try { return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "restart_sentinel_" + Process.GetCurrentProcess().Id + ".tmp"); }
+            catch { return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "restart_sentinel.tmp"); }
+        }
+
+        static void WriteRestartSentinel()
+        {
+            try
+            {
+                File.WriteAllText(GetRestartSentinelPath(), DateTime.Now.ToString("o"));
+                Log("[Backend] Restart sentinel written: " + GetRestartSentinelPath());
+            }
+            catch (Exception ex)
+            {
+                Log("[Backend] Restart sentinel write failed: " + ex.Message);
+            }
+        }
+
+        static void StopHttpServer()
+        {
+            lock (httpListenerLock)
+            {
+                if (httpListener != null)
+                {
+                    try { httpListener.Stop(); } catch { }
+                    try { httpListener.Close(); } catch { }
+                    httpListener = null;
+                    Log("[Backend] HTTP server stopped (port 17654 released for self-restart).");
+                }
+            }
+        }
+
+        static void SelfRestartBackend(string reason)
+        {
+            try
+            {
+                Log("[Backend] Self-restart requested (" + reason + "). Spawning fresh instance...");
+
+                // v1.5.81: dispose the tray NotifyIcon BEFORE spawning the
+                // child. Without this the parent keeps its tray icon visible
+                // for ~500ms (until Environment.Exit kicks in) while the
+                // child creates its own — user sees TWO icons momentarily.
+                try { CleanupNotifyIcon(); } catch { }
+
+                // v1.5.85: do NOT close the HttpListener synchronously here.
+                // The caller (HTTP SETENABLE handler running on ThreadPool)
+                // may still need it to send its response to the widget before
+                // the process dies. We schedule the close on a delayed thread
+                // (1.2s) so the response is flushed first, then the listener
+                // is released and the child can bind port 17654 cleanly.
+
+                // v1.5.75: re-align tray labels NOW so the user sees the
+                // updated state during the brief 500ms window before the new
+                // instance takes over.
+                try { RefreshTrayMenuState(); } catch { }
+
+                if (cleanExitEvent != null)
+                {
+                    try { cleanExitEvent.Set(); } catch { }
+                }
+
+                // v1.5.75: write a sentinel file as a SECOND, race-free
+                // signal to the watchdog. The EventWaitHandle is best-effort
+                // (200ms wait) but the file is a durable handoff that the
+                // watchdog will discover whenever it polls the parent death.
+                WriteRestartSentinel();
+
+                var mainModule = Process.GetCurrentProcess().MainModule;
+                string? currentExe = mainModule?.FileName;
+                if (!string.IsNullOrEmpty(currentExe))
+                {
+                    var psi = new ProcessStartInfo();
+                    psi.FileName = currentExe;
+                    // v1.5.79: pass --child so the new instance knows to skip the
+                    // Mutex singleton check (we still own it during the 500ms sleep).
+                    psi.Arguments = "--child";
+                    psi.UseShellExecute = false;
+                    psi.CreateNoWindow = true;
+                    Process.Start(psi);
+                    Log("[Backend] Fresh instance spawned (--child). Exiting current process.");
+                }
+                else
+                {
+                    Log("[Backend] Self-restart skipped: MainModule/FileName null.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("[Backend] Self-restart failed: " + ex.Message);
+            }
+
+            // v1.5.85: defer HttpListener close so in-flight HTTP responses can be
+            // flushed back to the widget before this process exits. 1.2s is
+            // enough for the ThreadPool worker to complete its response write
+            // and for the widget to receive it.
+            try
+            {
+                System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+                {
+                    try { System.Threading.Thread.Sleep(1200); } catch { }
+                    try { StopHttpServer(); } catch { }
+                });
+            }
+            catch { }
+
+            // Give the new process a 500ms head-start so the singleton Mutex
+            // release races resolve cleanly, then exit.
+            Thread.Sleep(500);
+            Environment.Exit(0);
+        }
 
         static void KillExplorer()
 
@@ -6328,9 +6733,24 @@ namespace RetroBatGameMode
 
 
 
+        static readonly object reloadLock = new object();
+
         static void ReloadAndApplyConfig(string iniPath, ref DateTime lastRead)
 
         {
+
+            if (!Monitor.TryEnter(reloadLock, TimeSpan.FromSeconds(2)))
+            {
+                // Another reload is still in progress (SETENABLE via HTTP + live
+                // poll race). Skip this cycle — the in-flight call already
+                // processed the latest INI state.
+                Log("[Live] Reload locked (another update in progress). Skipping this poll.");
+                return;
+            }
+
+            try
+
+            {
 
             // Snapshot current values to detect what changed
 
@@ -6501,7 +6921,21 @@ namespace RetroBatGameMode
 
 
 
-                // If we just disabled AND no RetroBat/EmulationStation runs AND non-standalone ? exit
+                // v1.5.74: Disable path ALWAYS performs a fresh self-restart of
+                // the backend. The UndoOptimizations above handles the live
+                // state cleanup; the restart guarantees the next process
+                // reads every flag fresh from the INI. We do NOT skip restart
+                // even in non-standalone mode without RetroBat — the new
+                // instance will re-evaluate requestExit and exit cleanly on
+                // its first poll cycle.
+
+                SelfRestartBackend("Enable toggled to false");
+
+
+
+                // Unreachable in normal flow (SelfRestartBackend calls
+                // Environment.Exit). Kept as a safety net in case the helper
+                // somehow failed to exit (e.g. spawn failure).
 
                 if (standaloneMonitor == StandaloneMode.Off && !IsRetroBatRunning())
 
@@ -6526,6 +6960,14 @@ namespace RetroBatGameMode
                 ApplyOptimizations();
 
                 isOptimized = true;
+
+                // v1.5.74: Enable path also restarts the backend so all
+                // state is re-read fresh from the INI. Enable can never be
+                // applied while optimizations are active (the precondition
+                // wasEnabled && !enabled covers that), so no extra restore
+                // is needed here.
+
+                SelfRestartBackend("Enable toggled to true");
 
             }
 
@@ -6754,6 +7196,20 @@ namespace RetroBatGameMode
             }
 
             catch { }
+
+            }
+
+            finally
+            {
+                // v1.5.73: re-align tray menu labels with the latest runtime
+                // state (enabled / standaloneMonitor / gameBarWidgetEnabled)
+                // regardless of which surface wrote the INI (widget, tray,
+                // poll, or hand-edit). Safe no-op if contextMenu is null.
+                try { RefreshTrayMenuState(); }
+                catch (Exception mex) { Log("[UI] RefreshTrayMenuState failed: " + mex.Message); }
+
+                Monitor.Exit(reloadLock);
+            }
 
         }
 
@@ -7721,6 +8177,8 @@ namespace RetroBatGameMode
 
             var toggleItem = new System.Windows.Forms.ToolStripMenuItem(enableLabel, null, (s, e) => ToggleEnableLive());
 
+            toggleItem.Name = "enableToggleItem";
+
             toggleItem.ToolTipText = GetLangMessage("menu_enable_tooltip");
 
             contextMenu.Items.Add(toggleItem);
@@ -7897,45 +8355,25 @@ namespace RetroBatGameMode
 
             {
 
-                bool newEnabled = !enabled;
+                bool currentEnabled = ReadIniBool("Settings", "Enable", enabled, iniPath);
+                bool newEnabled = !currentEnabled;
 
                 WritePrivateProfileString("Settings", "Enable", newEnabled ? "true" : "false", iniPath);
 
                 WritePrivateProfileString(null, null, null, iniPath);
 
-
-
-                // Update the menu item text: show "Disable" when Enabled is true, "Enable" when Enabled is false
-
-                if (contextMenu != null)
-
-                {
-
-                    foreach (System.Windows.Forms.ToolStripItem item in contextMenu.Items)
-
-                    {
-
-                        if (item is System.Windows.Forms.ToolStripMenuItem mi &&
-
-                            (mi.Text == GetLangMessage("menu_enable") || mi.Text == GetLangMessage("menu_disable") ||
-
-                             mi.ToolTipText == GetLangMessage("menu_enable_tooltip")))
-
-                        {
-
-                            mi.Text = newEnabled ? GetLangMessage("menu_disable") : GetLangMessage("menu_enable");
-
-                            break;
-
-                        }
-
-                    }
-
-                }
-
-
+                // v1.5.73: tray menu label refresh is now done by
+                // RefreshTrayMenuState() inside ReloadAndApplyConfig's finally
+                // block, so the previous inline menu-text update was removed.
 
                 Log("[UI] Enable toggled to " + newEnabled + " via tray icon. config.ini updated; live reload will apply.");
+
+                // v1.5.72: trigger immediate reload (same as SETENABLE on
+                // widget side) so the apply/undo happens NOW rather than
+                // waiting until the next 2-second poll cycle.
+                DateTime now = File.GetLastWriteTime(iniPath);
+                if (now > DateTime.Now) now = DateTime.Now;
+                ReloadAndApplyConfig(iniPath, ref now);
 
             }
 
@@ -8962,6 +9400,42 @@ namespace RetroBatGameMode
 
 
 
+        // v1.5.73: single entry-point that re-aligns ALL dynamic tray menu
+        // labels with the current runtime state. Called after every
+        // ReloadAndApplyConfig, after ToggleEnableLive, after SETENABLE /
+        // SETSTANDALONE HTTP handlers, etc. — so the tray stays in sync with
+        // the INI regardless of which surface changed the state.
+        static void RefreshTrayMenuState()
+        {
+            UpdateEnableTrayMenuItem();
+            UpdateStandaloneTrayMenuItem();
+            UpdateWidgetTrayMenuItem();
+        }
+
+        static void UpdateEnableTrayMenuItem()
+        {
+            try
+            {
+                if (contextMenu == null) return;
+                foreach (System.Windows.Forms.ToolStripItem item in contextMenu.Items)
+                {
+                    if (item.Name == "enableToggleItem")
+                    {
+                        var mi = item as System.Windows.Forms.ToolStripMenuItem;
+                        if (mi != null)
+                        {
+                            mi.Text = enabled ? GetLangMessage("menu_disable") : GetLangMessage("menu_enable");
+                        }
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("[UI] Error updating Enable tray menu item: " + ex.Message);
+            }
+        }
+
         static void UpdateStandaloneTrayMenuItem()
 
         {
@@ -9254,6 +9728,18 @@ namespace RetroBatGameMode
 
                         return "GETENABLE:" + (enabled ? "true" : "false");
 
+                    // v1.5.76: return the backend's own executable path so the
+                    // Game Bar widget can cache it in its sandbox and use it
+                    // to re-spawn the backend if it has crashed. No hardcoded
+                    // path in the widget — purely discovered via HTTP.
+                    case "GETPATH":
+                        {
+                            string exePath = "";
+                            try { exePath = Process.GetCurrentProcess().MainModule?.FileName ?? ""; }
+                            catch { exePath = ""; }
+                            return "GETPATH:" + exePath;
+                        }
+
                     case "GETSTANDALONE":
 
                         return "GETSTANDALONE:" + StandaloneModeToString(standaloneMonitor);
@@ -9264,7 +9750,8 @@ namespace RetroBatGameMode
 
                             string iniPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.ini");
 
-                            bool newVal = !enabled;
+                            bool currentEnabled = ReadIniBool("Settings", "Enable", enabled, iniPath);
+                            bool newVal = !currentEnabled;
 
                             try
 
@@ -9392,9 +9879,7 @@ namespace RetroBatGameMode
 
         }
 
-
-
-        static void StartHttpServer()
+static void StartHttpServer()
 
         {
 
@@ -9402,36 +9887,141 @@ namespace RetroBatGameMode
 
             {
 
-                try
+                lock (httpListenerLock)
 
                 {
 
-                    System.Net.HttpListener listener = new System.Net.HttpListener();
+                    if (httpListener != null)
 
-                    listener.Prefixes.Add("http://localhost:17654/");
+                    {
 
-                    listener.Start();
+                        try { httpListener.Stop(); } catch { }
 
-                    Log("[Widget] HTTP server listening on http://localhost:17654/");
+                        try { httpListener.Close(); } catch { }
 
-                    while (!requestExit)
+                        httpListener = null;
+
+                    }
+
+// v1.5.85: HttpListener.Start() can leave the instance in a disposed state
+                    // after a failed Start() call (port conflict). Re-create a fresh
+                    // instance on each retry instead of reusing the same one.
+
+                    DateTime start = DateTime.Now;
+
+                    System.Net.HttpListener? listener = null;
+
+                    while (true)
+
+                    {
+
+                        try
 
                         {
 
-                            try
+                            if (listener != null)
 
                             {
 
-                                System.Net.HttpListenerContext ctx = listener.GetContext();
+                                try { listener.Close(); } catch { }
 
-                                // Dispatch each request onto a ThreadPool worker so
-                                // a slow handler (SETENABLE during a long apply)
-                                // can never starve the next /PING or /STATUS poll.
-                                System.Threading.ThreadPool.QueueUserWorkItem(_ =>
-                                {
-                                    try { HandleHttpContext(ctx); }
-                                    catch (Exception ex) { Log("[Widget] handler error: " + ex.Message); }
-                                });
+                            }
+
+                            listener = new System.Net.HttpListener();
+
+                            listener.Prefixes.Add("http://localhost:17654/");
+
+                            listener.Start();
+
+                            httpListener = listener;
+
+                            break;
+
+                        }
+
+                        catch (System.Net.HttpListenerException ex) when (ex.ErrorCode == 183 || ex.ErrorCode == 32)
+
+                        {
+
+                            // ERROR_ALREADY_EXISTS (183) or ERROR_SHARING_VIOLATION (32):
+                            // port conflict, likely from old instance still shutting down
+
+                            if ((DateTime.Now - start).TotalSeconds >= 5)
+
+                            {
+
+                                Log("[Widget] HTTP server failed to start after 5s retry: " + ex.Message);
+
+                                httpListener = null;
+
+                                try { listener?.Close(); } catch { }
+
+                                return;
+
+                            }
+
+                            Log("[Widget] HTTP port 17654 busy, retrying (" + (int)(DateTime.Now - start).TotalSeconds + "s)...");
+
+                            Thread.Sleep(300);
+
+                        }
+
+                        catch (Exception ex)
+
+                        {
+
+                            Log("[Widget] HTTP server failed to start: " + ex.Message);
+
+                            httpListener = null;
+
+                            try { listener?.Close(); } catch { }
+
+                            return;
+
+                        }
+
+                    }
+
+                }
+
+                Log("[Widget] HTTP server listening on http://localhost:17654/");
+
+                System.Net.HttpListener? l = null;
+
+                lock (httpListenerLock) { l = httpListener; }
+
+                if (l == null) return;
+
+                while (!requestExit)
+
+                    {
+
+                        try
+
+                        {
+
+                            System.Net.HttpListenerContext ctx = l.GetContext();
+
+                            // Dispatch each request onto a ThreadPool worker so
+                            // a slow handler (SETENABLE during a long apply)
+                            // can never starve the next /PING or /STATUS poll.
+                            System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+                            {
+
+                                try { HandleHttpContext(ctx); }
+                                catch (Exception ex) { Log("[Widget] handler error: " + ex.Message); }
+
+                            });
+
+                    }
+
+                    catch (System.ObjectDisposedException)
+
+                        {
+
+                            Log("[Widget] HTTP server stopped (listener disposed).");
+
+                            return;
 
                         }
 
@@ -9453,23 +10043,13 @@ namespace RetroBatGameMode
 
                         }
 
-                    }
-
-                    try { listener.Stop(); } catch { }
-
-                    try { listener.Close(); } catch { }
-
-                    Log("[Widget] HTTP server stopped.");
-
                 }
 
-                catch (Exception ex)
+                try { l.Stop(); } catch { }
 
-                {
+                try { l.Close(); } catch { }
 
-                    Log("[Widget] HTTP server failed to start: " + ex.Message);
-
-                }
+                Log("[Widget] HTTP server stopped.");
 
             });
 

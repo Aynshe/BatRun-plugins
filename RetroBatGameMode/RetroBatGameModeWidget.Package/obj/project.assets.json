@@ -557,6 +557,30 @@
           }
         }
       },
+      "Microsoft.Win32.Registry/5.0.0": {
+        "type": "package",
+        "dependencies": {
+          "System.Memory": "4.5.4",
+          "System.Security.AccessControl": "5.0.0",
+          "System.Security.Principal.Windows": "5.0.0"
+        },
+        "compile": {
+          "ref/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "assetType": "runtime",
+            "rid": "win"
+          }
+        }
+      },
       "NETStandard.Library/2.0.3": {
         "type": "package",
         "dependencies": {
@@ -725,6 +749,36 @@
           }
         }
       },
+      "System.Security.AccessControl/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "lib/uap10.0.16299/_._": {}
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/uap10.0.16299/_._": {
+            "assetType": "runtime",
+            "rid": "win"
+          }
+        }
+      },
+      "System.Security.Principal.Windows/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "lib/uap10.0.16299/_._": {}
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/uap10.0.16299/_._": {
+            "assetType": "runtime",
+            "rid": "win"
+          }
+        }
+      },
       "System.Text.Encodings.Web/10.0.0": {
         "type": "package",
         "dependencies": {
@@ -791,6 +845,7 @@
           "Microsoft.Gaming.XboxGameBar": "7.3.2506120",
           "Microsoft.NETCore.UniversalWindowsPlatform": "6.2.14",
           "Microsoft.UI.Xaml": "2.8.7",
+          "Microsoft.Win32.Registry": "5.0.0",
           "System.Text.Json": "10.0.0"
         },
         "compile": {
@@ -1318,6 +1373,24 @@
           "buildTransitive/Microsoft.Web.WebView2.targets": {}
         }
       },
+      "Microsoft.Win32.Registry/5.0.0": {
+        "type": "package",
+        "dependencies": {
+          "System.Memory": "4.5.4",
+          "System.Security.AccessControl": "5.0.0",
+          "System.Security.Principal.Windows": "5.0.0"
+        },
+        "compile": {
+          "ref/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "NETStandard.Library/2.0.3": {
         "type": "package",
         "dependencies": {
@@ -1664,6 +1737,24 @@
           }
         }
       },
+      "System.Security.AccessControl/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
+      "System.Security.Principal.Windows/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
       "System.Text.Encodings.Web/10.0.0": {
         "type": "package",
         "dependencies": {
@@ -1730,6 +1821,7 @@
           "Microsoft.Gaming.XboxGameBar": "7.3.2506120",
           "Microsoft.NETCore.UniversalWindowsPlatform": "6.2.14",
           "Microsoft.UI.Xaml": "2.8.7",
+          "Microsoft.Win32.Registry": "5.0.0",
           "System.Text.Json": "10.0.0"
         },
         "compile": {
@@ -2257,6 +2349,24 @@
           "buildTransitive/Microsoft.Web.WebView2.targets": {}
         }
       },
+      "Microsoft.Win32.Registry/5.0.0": {
+        "type": "package",
+        "dependencies": {
+          "System.Memory": "4.5.4",
+          "System.Security.AccessControl": "5.0.0",
+          "System.Security.Principal.Windows": "5.0.0"
+        },
+        "compile": {
+          "ref/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "NETStandard.Library/2.0.3": {
         "type": "package",
         "dependencies": {
@@ -2604,6 +2714,24 @@
           }
         }
       },
+      "System.Security.AccessControl/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
+      "System.Security.Principal.Windows/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
       "System.Text.Encodings.Web/10.0.0": {
         "type": "package",
         "dependencies": {
@@ -2670,6 +2798,7 @@
           "Microsoft.Gaming.XboxGameBar": "7.3.2506120",
           "Microsoft.NETCore.UniversalWindowsPlatform": "6.2.14",
           "Microsoft.UI.Xaml": "2.8.7",
+          "Microsoft.Win32.Registry": "5.0.0",
           "System.Text.Json": "10.0.0"
         },
         "compile": {
@@ -3204,6 +3333,24 @@
           "buildTransitive/Microsoft.Web.WebView2.targets": {}
         }
       },
+      "Microsoft.Win32.Registry/5.0.0": {
+        "type": "package",
+        "dependencies": {
+          "System.Memory": "4.5.4",
+          "System.Security.AccessControl": "5.0.0",
+          "System.Security.Principal.Windows": "5.0.0"
+        },
+        "compile": {
+          "ref/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "NETStandard.Library/2.0.3": {
         "type": "package",
         "dependencies": {
@@ -3551,6 +3698,24 @@
           }
         }
       },
+      "System.Security.AccessControl/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
+      "System.Security.Principal.Windows/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
       "System.Text.Encodings.Web/10.0.0": {
         "type": "package",
         "dependencies": {
@@ -3617,6 +3782,7 @@
           "Microsoft.Gaming.XboxGameBar": "7.3.2506120",
           "Microsoft.NETCore.UniversalWindowsPlatform": "6.2.14",
           "Microsoft.UI.Xaml": "2.8.7",
+          "Microsoft.Win32.Registry": "5.0.0",
           "System.Text.Json": "10.0.0"
         },
         "compile": {
@@ -4151,6 +4317,24 @@
           "buildTransitive/Microsoft.Web.WebView2.targets": {}
         }
       },
+      "Microsoft.Win32.Registry/5.0.0": {
+        "type": "package",
+        "dependencies": {
+          "System.Memory": "4.5.4",
+          "System.Security.AccessControl": "5.0.0",
+          "System.Security.Principal.Windows": "5.0.0"
+        },
+        "compile": {
+          "ref/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "NETStandard.Library/2.0.3": {
         "type": "package",
         "dependencies": {
@@ -4497,6 +4681,24 @@
           }
         }
       },
+      "System.Security.AccessControl/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
+      "System.Security.Principal.Windows/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
       "System.Text.Encodings.Web/10.0.0": {
         "type": "package",
         "dependencies": {
@@ -4563,6 +4765,7 @@
           "Microsoft.Gaming.XboxGameBar": "7.3.2506120",
           "Microsoft.NETCore.UniversalWindowsPlatform": "6.2.14",
           "Microsoft.UI.Xaml": "2.8.7",
+          "Microsoft.Win32.Registry": "5.0.0",
           "System.Text.Json": "10.0.0"
         },
         "compile": {
@@ -5097,6 +5300,24 @@
           "buildTransitive/Microsoft.Web.WebView2.targets": {}
         }
       },
+      "Microsoft.Win32.Registry/5.0.0": {
+        "type": "package",
+        "dependencies": {
+          "System.Memory": "4.5.4",
+          "System.Security.AccessControl": "5.0.0",
+          "System.Security.Principal.Windows": "5.0.0"
+        },
+        "compile": {
+          "ref/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "NETStandard.Library/2.0.3": {
         "type": "package",
         "dependencies": {
@@ -5444,6 +5665,24 @@
           }
         }
       },
+      "System.Security.AccessControl/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
+      "System.Security.Principal.Windows/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
       "System.Text.Encodings.Web/10.0.0": {
         "type": "package",
         "dependencies": {
@@ -5510,6 +5749,7 @@
           "Microsoft.Gaming.XboxGameBar": "7.3.2506120",
           "Microsoft.NETCore.UniversalWindowsPlatform": "6.2.14",
           "Microsoft.UI.Xaml": "2.8.7",
+          "Microsoft.Win32.Registry": "5.0.0",
           "System.Text.Json": "10.0.0"
         },
         "compile": {
@@ -6044,6 +6284,24 @@
           "buildTransitive/Microsoft.Web.WebView2.targets": {}
         }
       },
+      "Microsoft.Win32.Registry/5.0.0": {
+        "type": "package",
+        "dependencies": {
+          "System.Memory": "4.5.4",
+          "System.Security.AccessControl": "5.0.0",
+          "System.Security.Principal.Windows": "5.0.0"
+        },
+        "compile": {
+          "ref/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "NETStandard.Library/2.0.3": {
         "type": "package",
         "dependencies": {
@@ -6390,6 +6648,24 @@
           }
         }
       },
+      "System.Security.AccessControl/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
+      "System.Security.Principal.Windows/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
       "System.Text.Encodings.Web/10.0.0": {
         "type": "package",
         "dependencies": {
@@ -6456,6 +6732,7 @@
           "Microsoft.Gaming.XboxGameBar": "7.3.2506120",
           "Microsoft.NETCore.UniversalWindowsPlatform": "6.2.14",
           "Microsoft.UI.Xaml": "2.8.7",
+          "Microsoft.Win32.Registry": "5.0.0",
           "System.Text.Json": "10.0.0"
         },
         "compile": {
@@ -6990,6 +7267,24 @@
           "buildTransitive/Microsoft.Web.WebView2.targets": {}
         }
       },
+      "Microsoft.Win32.Registry/5.0.0": {
+        "type": "package",
+        "dependencies": {
+          "System.Memory": "4.5.4",
+          "System.Security.AccessControl": "5.0.0",
+          "System.Security.Principal.Windows": "5.0.0"
+        },
+        "compile": {
+          "ref/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "NETStandard.Library/2.0.3": {
         "type": "package",
         "dependencies": {
@@ -7337,6 +7632,24 @@
           }
         }
       },
+      "System.Security.AccessControl/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
+      "System.Security.Principal.Windows/5.0.0": {
+        "type": "package",
+        "compile": {
+          "ref/uap10.0.16299/_._": {}
+        },
+        "runtime": {
+          "runtimes/win/lib/uap10.0.16299/_._": {}
+        }
+      },
       "System.Text.Encodings.Web/10.0.0": {
         "type": "package",
         "dependencies": {
@@ -7403,6 +7716,7 @@
           "Microsoft.Gaming.XboxGameBar": "7.3.2506120",
           "Microsoft.NETCore.UniversalWindowsPlatform": "6.2.14",
           "Microsoft.UI.Xaml": "2.8.7",
+          "Microsoft.Win32.Registry": "5.0.0",
           "System.Text.Json": "10.0.0"
         },
         "compile": {
@@ -7976,6 +8290,50 @@
         "tools/wv2winrt/wv2winrt.xml",
         "tools/wv2winrt/zh-Hans/System.CommandLine.resources.dll",
         "tools/wv2winrt/zh-Hant/System.CommandLine.resources.dll"
+      ]
+    },
+    "Microsoft.Win32.Registry/5.0.0": {
+      "sha512": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg==",
+      "type": "package",
+      "path": "microsoft.win32.registry/5.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "LICENSE.TXT",
+        "THIRD-PARTY-NOTICES.TXT",
+        "lib/net46/Microsoft.Win32.Registry.dll",
+        "lib/net461/Microsoft.Win32.Registry.dll",
+        "lib/net461/Microsoft.Win32.Registry.xml",
+        "lib/netstandard1.3/Microsoft.Win32.Registry.dll",
+        "lib/netstandard2.0/Microsoft.Win32.Registry.dll",
+        "lib/netstandard2.0/Microsoft.Win32.Registry.xml",
+        "microsoft.win32.registry.5.0.0.nupkg.sha512",
+        "microsoft.win32.registry.nuspec",
+        "ref/net46/Microsoft.Win32.Registry.dll",
+        "ref/net461/Microsoft.Win32.Registry.dll",
+        "ref/net461/Microsoft.Win32.Registry.xml",
+        "ref/netstandard1.3/Microsoft.Win32.Registry.dll",
+        "ref/netstandard1.3/Microsoft.Win32.Registry.xml",
+        "ref/netstandard1.3/de/Microsoft.Win32.Registry.xml",
+        "ref/netstandard1.3/es/Microsoft.Win32.Registry.xml",
+        "ref/netstandard1.3/fr/Microsoft.Win32.Registry.xml",
+        "ref/netstandard1.3/it/Microsoft.Win32.Registry.xml",
+        "ref/netstandard1.3/ja/Microsoft.Win32.Registry.xml",
+        "ref/netstandard1.3/ko/Microsoft.Win32.Registry.xml",
+        "ref/netstandard1.3/ru/Microsoft.Win32.Registry.xml",
+        "ref/netstandard1.3/zh-hans/Microsoft.Win32.Registry.xml",
+        "ref/netstandard1.3/zh-hant/Microsoft.Win32.Registry.xml",
+        "ref/netstandard2.0/Microsoft.Win32.Registry.dll",
+        "ref/netstandard2.0/Microsoft.Win32.Registry.xml",
+        "runtimes/win/lib/net46/Microsoft.Win32.Registry.dll",
+        "runtimes/win/lib/net461/Microsoft.Win32.Registry.dll",
+        "runtimes/win/lib/net461/Microsoft.Win32.Registry.xml",
+        "runtimes/win/lib/netstandard1.3/Microsoft.Win32.Registry.dll",
+        "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.dll",
+        "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.xml",
+        "useSharedDesignerContext.txt",
+        "version.txt"
       ]
     },
     "NETStandard.Library/2.0.3": {
@@ -12149,6 +12507,108 @@
         "system.runtime.compilerservices.unsafe.nuspec"
       ]
     },
+    "System.Security.AccessControl/5.0.0": {
+      "sha512": "dagJ1mHZO3Ani8GH0PHpPEe/oYO+rVdbQjvjJkBRNQkX4t0r1iaeGn8+/ybkSLEan3/slM0t59SVdHzuHf2jmw==",
+      "type": "package",
+      "path": "system.security.accesscontrol/5.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "LICENSE.TXT",
+        "THIRD-PARTY-NOTICES.TXT",
+        "lib/net46/System.Security.AccessControl.dll",
+        "lib/net461/System.Security.AccessControl.dll",
+        "lib/net461/System.Security.AccessControl.xml",
+        "lib/netstandard1.3/System.Security.AccessControl.dll",
+        "lib/netstandard2.0/System.Security.AccessControl.dll",
+        "lib/netstandard2.0/System.Security.AccessControl.xml",
+        "lib/uap10.0.16299/_._",
+        "ref/net46/System.Security.AccessControl.dll",
+        "ref/net461/System.Security.AccessControl.dll",
+        "ref/net461/System.Security.AccessControl.xml",
+        "ref/netstandard1.3/System.Security.AccessControl.dll",
+        "ref/netstandard1.3/System.Security.AccessControl.xml",
+        "ref/netstandard1.3/de/System.Security.AccessControl.xml",
+        "ref/netstandard1.3/es/System.Security.AccessControl.xml",
+        "ref/netstandard1.3/fr/System.Security.AccessControl.xml",
+        "ref/netstandard1.3/it/System.Security.AccessControl.xml",
+        "ref/netstandard1.3/ja/System.Security.AccessControl.xml",
+        "ref/netstandard1.3/ko/System.Security.AccessControl.xml",
+        "ref/netstandard1.3/ru/System.Security.AccessControl.xml",
+        "ref/netstandard1.3/zh-hans/System.Security.AccessControl.xml",
+        "ref/netstandard1.3/zh-hant/System.Security.AccessControl.xml",
+        "ref/netstandard2.0/System.Security.AccessControl.dll",
+        "ref/netstandard2.0/System.Security.AccessControl.xml",
+        "ref/uap10.0.16299/_._",
+        "runtimes/win/lib/net46/System.Security.AccessControl.dll",
+        "runtimes/win/lib/net461/System.Security.AccessControl.dll",
+        "runtimes/win/lib/net461/System.Security.AccessControl.xml",
+        "runtimes/win/lib/netcoreapp2.0/System.Security.AccessControl.dll",
+        "runtimes/win/lib/netcoreapp2.0/System.Security.AccessControl.xml",
+        "runtimes/win/lib/netstandard1.3/System.Security.AccessControl.dll",
+        "runtimes/win/lib/uap10.0.16299/_._",
+        "system.security.accesscontrol.5.0.0.nupkg.sha512",
+        "system.security.accesscontrol.nuspec",
+        "useSharedDesignerContext.txt",
+        "version.txt"
+      ]
+    },
+    "System.Security.Principal.Windows/5.0.0": {
+      "sha512": "t0MGLukB5WAVU9bO3MGzvlGnyJPgUlcwerXn1kzBRjwLKixT96XV0Uza41W49gVd8zEMFu9vQEFlv0IOrytICA==",
+      "type": "package",
+      "path": "system.security.principal.windows/5.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "LICENSE.TXT",
+        "THIRD-PARTY-NOTICES.TXT",
+        "lib/net46/System.Security.Principal.Windows.dll",
+        "lib/net461/System.Security.Principal.Windows.dll",
+        "lib/net461/System.Security.Principal.Windows.xml",
+        "lib/netstandard1.3/System.Security.Principal.Windows.dll",
+        "lib/netstandard2.0/System.Security.Principal.Windows.dll",
+        "lib/netstandard2.0/System.Security.Principal.Windows.xml",
+        "lib/uap10.0.16299/_._",
+        "ref/net46/System.Security.Principal.Windows.dll",
+        "ref/net461/System.Security.Principal.Windows.dll",
+        "ref/net461/System.Security.Principal.Windows.xml",
+        "ref/netcoreapp3.0/System.Security.Principal.Windows.dll",
+        "ref/netcoreapp3.0/System.Security.Principal.Windows.xml",
+        "ref/netstandard1.3/System.Security.Principal.Windows.dll",
+        "ref/netstandard1.3/System.Security.Principal.Windows.xml",
+        "ref/netstandard1.3/de/System.Security.Principal.Windows.xml",
+        "ref/netstandard1.3/es/System.Security.Principal.Windows.xml",
+        "ref/netstandard1.3/fr/System.Security.Principal.Windows.xml",
+        "ref/netstandard1.3/it/System.Security.Principal.Windows.xml",
+        "ref/netstandard1.3/ja/System.Security.Principal.Windows.xml",
+        "ref/netstandard1.3/ko/System.Security.Principal.Windows.xml",
+        "ref/netstandard1.3/ru/System.Security.Principal.Windows.xml",
+        "ref/netstandard1.3/zh-hans/System.Security.Principal.Windows.xml",
+        "ref/netstandard1.3/zh-hant/System.Security.Principal.Windows.xml",
+        "ref/netstandard2.0/System.Security.Principal.Windows.dll",
+        "ref/netstandard2.0/System.Security.Principal.Windows.xml",
+        "ref/uap10.0.16299/_._",
+        "runtimes/unix/lib/netcoreapp2.0/System.Security.Principal.Windows.dll",
+        "runtimes/unix/lib/netcoreapp2.0/System.Security.Principal.Windows.xml",
+        "runtimes/unix/lib/netcoreapp2.1/System.Security.Principal.Windows.dll",
+        "runtimes/unix/lib/netcoreapp2.1/System.Security.Principal.Windows.xml",
+        "runtimes/win/lib/net46/System.Security.Principal.Windows.dll",
+        "runtimes/win/lib/net461/System.Security.Principal.Windows.dll",
+        "runtimes/win/lib/net461/System.Security.Principal.Windows.xml",
+        "runtimes/win/lib/netcoreapp2.0/System.Security.Principal.Windows.dll",
+        "runtimes/win/lib/netcoreapp2.0/System.Security.Principal.Windows.xml",
+        "runtimes/win/lib/netcoreapp2.1/System.Security.Principal.Windows.dll",
+        "runtimes/win/lib/netcoreapp2.1/System.Security.Principal.Windows.xml",
+        "runtimes/win/lib/netstandard1.3/System.Security.Principal.Windows.dll",
+        "runtimes/win/lib/uap10.0.16299/_._",
+        "system.security.principal.windows.5.0.0.nupkg.sha512",
+        "system.security.principal.windows.nuspec",
+        "useSharedDesignerContext.txt",
+        "version.txt"
+      ]
+    },
     "System.Text.Encodings.Web/10.0.0": {
       "sha512": "257hh1ep1Gqm1Lm0ulxf7vVBVMJuGN6EL4xSWjpi46DffXzm1058IiWsfSC06zSm7SniN+Tb5160UnXsSa8rRg==",
       "type": "package",
@@ -12297,11 +12757,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
+      "projectUniqueName": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
       "projectName": "RetroBatGameModeWidget.Package",
-      "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
+      "projectPath": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
       "packagesPath": "C:\\Users\\Win11\\.nuget\\packages\\",
-      "outputPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\obj\\",
+      "outputPath": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget.Package\\obj\\",
       "projectStyle": "PackageReference",
       "UsingMicrosoftNETSdk": false,
       "fallbackFolders": [
@@ -12324,8 +12784,8 @@
           "framework": "uap10.0.17763",
           "targetAlias": "net451",
           "projectReferences": {
-            "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj": {
-              "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj"
+            "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj": {
+              "projectPath": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj"
             }
           }
         }

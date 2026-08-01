@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameMode.csproj": {}
+    "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameMode.csproj": {}
   },
   "projects": {
-    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameMode.csproj": {
-      "version": "1.5.71",
+    "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameMode.csproj": {
+      "version": "1.5.85",
       "restore": {
-        "projectUniqueName": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameMode.csproj",
+        "projectUniqueName": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameMode.csproj",
         "projectName": "RetroBatGameMode",
-        "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameMode.csproj",
+        "projectPath": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameMode.csproj",
         "packagesPath": "C:\\Users\\Win11\\.nuget\\packages\\",
-        "outputPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\obj\\",
+        "outputPath": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

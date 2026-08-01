@@ -83,6 +83,242 @@ namespace RetroBatGameModeWidget
             // The system settings icon on the widget title bar is hidden for now.
         }
 
+        // v1.5.76: backend path sentinel management. The widget stores the
+        // backend's exe path in its own sandbox so it can re-spawn the
+        // backend if it has crashed. The path is discovered exclusively via
+        // the GETPATH HTTP command — no hardcoded path is ever baked in.
+        private static string SentinelFileName => "backend_path.txt";
+
+        private static string GetSentinelPath()
+        {
+            try
+            {
+                return System.IO.Path.Combine(
+                    Windows.Storage.ApplicationData.Current.LocalFolder.Path,
+                    SentinelFileName);
+            }
+            catch { return null; }
+        }
+
+        private static async Task WriteBackendPathSentinelAsync(string exePath)
+        {
+            if (string.IsNullOrEmpty(exePath)) return;
+            try
+            {
+                string p = GetSentinelPath();
+                if (p == null) return;
+                var sf = await Windows.Storage.StorageFile.GetFileFromPathAsync(p);
+                await Windows.Storage.FileIO.WriteTextAsync(sf, exePath);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[Widget] Sentinel write failed: " + ex.Message);
+            }
+        }
+
+        private static async Task<string> ReadBackendPathSentinelAsync()
+        {
+            try
+            {
+                string p = GetSentinelPath();
+                if (p == null || !System.IO.File.Exists(p)) return null;
+                var sf = await Windows.Storage.StorageFile.GetFileFromPathAsync(p);
+                string text = await Windows.Storage.FileIO.ReadTextAsync(sf);
+                return string.IsNullOrEmpty(text) ? null : text.Trim();
+            }
+            catch { return null; }
+        }
+
+        // Counter for consecutive /ping failures. When it crosses the
+        // threshold, the widget attempts to re-spawn the backend from the
+        // sentinel path.
+        private int pingFailCount = 0;
+        private const int PingFailThreshold = 3;
+        private bool autoSpawnInProgress = false;
+
+        private async void TryAutoSpawnBackendAsync()
+        {
+            if (autoSpawnInProgress) return;
+            autoSpawnInProgress = true;
+            try
+            {
+                // v1.5.77: sentinel-first, but fall back to discovery so the
+                // widget can launch the backend even on a fresh install
+                // (where no sentinel has ever been written).
+                string exePath = await ReadBackendPathSentinelAsync();
+                if (string.IsNullOrEmpty(exePath) || !System.IO.File.Exists(exePath))
+                {
+                    System.Diagnostics.Debug.WriteLine("[Widget] Sentinel missing/invalid, trying fallback discovery.");
+                    exePath = await DiscoverBackendPathAsync();
+                }
+                if (string.IsNullOrEmpty(exePath) || !System.IO.File.Exists(exePath))
+                {
+                    System.Diagnostics.Debug.WriteLine("[Widget] Auto-spawn skipped: no backend path resolvable.");
+                    await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                    {
+                        SetStatus("Backend not found", "#F43F5E");
+                    });
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine("[Widget] Auto-spawning backend from: " + exePath);
+                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    SetStatus("Launching backend...", "#F59E0B");
+                });
+
+                try
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = exePath,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WorkingDirectory = System.IO.Path.GetDirectoryName(exePath) ?? ""
+                    };
+                    System.Diagnostics.Process.Start(psi);
+                }
+                catch (Exception spawnEx)
+                {
+                    System.Diagnostics.Debug.WriteLine("[Widget] Auto-spawn Process.Start failed: " + spawnEx.Message);
+                }
+            }
+            finally
+            {
+                autoSpawnInProgress = false;
+            }
+        }
+
+        // v1.5.77: scan well-known install locations for RetroBatGameMode.exe
+        // so we can launch the backend even when the sentinel cache is empty
+        // (first-run scenario, or after the user deleted the sandbox). Pure
+        // synchronous path probing wrapped in Task.Run so we never block the
+        // UI thread. Ordered from most-specific (RetroBat plugin folder) to
+        // most-generic (LocalAppData).
+        private static readonly string[] BackendCandidates = new string[]
+        {
+            // Hardcoded path that matches the user's actual install from the log.
+            @"S:\RetroBat\plugins\RetroBatGameMode\RetroBatGameMode.exe",
+            // Standard RetroBat plugin folder layout under any drive.
+            @"plugins\RetroBatGameMode\RetroBatGameMode.exe",
+        };
+
+        private static async Task<string> DiscoverBackendPathAsync()
+        {
+            string found = null;
+            try
+            {
+                found = await Task.Run(() =>
+                {
+                    // 1. Probe hardcoded candidates relative to common roots.
+                    foreach (var c in BackendCandidates)
+                    {
+                        try
+                        {
+                            if (System.IO.Path.IsPathRooted(c) && System.IO.File.Exists(c))
+                                return c;
+                        }
+                        catch { }
+                    }
+
+                    // 2. Read HKCU\Software\RetroBat\InstallPath or InstallLocation.
+                    try
+                    {
+                        using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\RetroBat"))
+                        {
+                            if (key != null)
+                            {
+                                var installPath = key.GetValue("InstallPath") as string
+                                                  ?? key.GetValue("InstallLocation") as string;
+                                if (!string.IsNullOrEmpty(installPath))
+                                {
+                                    var p = System.IO.Path.Combine(installPath, "plugins", "RetroBatGameMode", "RetroBatGameMode.exe");
+                                    if (System.IO.File.Exists(p)) return p;
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+
+                    // 3. Scan %LOCALAPPDATA% RetroBat-style layouts.
+                    try
+                    {
+                        var lad = System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData);
+                        if (!string.IsNullOrEmpty(lad))
+                        {
+                            var roots = new string[]
+                            {
+                                System.IO.Path.Combine(lad, "RetroBat", "plugins", "RetroBatGameMode", "RetroBatGameMode.exe"),
+                                System.IO.Path.Combine(lad, "Programs", "RetroBatGameMode", "RetroBatGameMode.exe"),
+                            };
+                            foreach (var p in roots)
+                            {
+                                if (System.IO.File.Exists(p)) return p;
+                            }
+                        }
+                    }
+                    catch { }
+
+                    // 4. Last-ditch: search %PATH% / running-process MainModule
+                    //    of any RetroBatGameMode-related process.
+                    try
+                    {
+                        var cur = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+                        if (!string.IsNullOrEmpty(cur))
+                        {
+                            var dir = System.IO.Path.GetDirectoryName(cur);
+                            if (!string.IsNullOrEmpty(dir))
+                            {
+                                // Same dir as the widget dll (Unpackaged layout)
+                                var sameDir = System.IO.Path.Combine(dir, "RetroBatGameMode.exe");
+                                if (System.IO.File.Exists(sameDir)) return sameDir;
+                                // One level up (standard MSIX layout: widget lives
+                                // in plugins\RetroBatGameMode\RetroBatGameModeWidget\)
+                                var parent = System.IO.Path.GetDirectoryName(dir);
+                                if (!string.IsNullOrEmpty(parent))
+                                {
+                                    var sib = System.IO.Path.Combine(parent, "RetroBatGameMode.exe");
+                                    if (System.IO.File.Exists(sib)) return sib;
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+
+                    return null;
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[Widget] DiscoverBackendPath error: " + ex.Message);
+            }
+            return found;
+        }
+
+        // v1.5.76: ask the backend for its current exe path and cache it
+        // in the widget's sandbox. Fire-and-forget — failures are logged
+        // and swallowed.
+        private async Task RefreshBackendPathSentinelAsync()
+        {
+            try
+            {
+                string body = await FetchAsync("/command?cmd=GETPATH");
+                if (!string.IsNullOrEmpty(body) && body.StartsWith("GETPATH:"))
+                {
+                    string p = body.Substring("GETPATH:".Length).Trim();
+                    if (!string.IsNullOrEmpty(p))
+                    {
+                        await WriteBackendPathSentinelAsync(p);
+                        System.Diagnostics.Debug.WriteLine("[Widget] Sentinel updated: " + p);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[Widget] GETPATH refresh failed: " + ex.Message);
+            }
+        }
+
         private async void HealthTimer_Tick(object sender, object e)
         {
             string logPath = System.IO.Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "widget_page_debug.txt");
@@ -106,10 +342,25 @@ namespace RetroBatGameModeWidget
 
                 if (ok)
                 {
+                    pingFailCount = 0;
                     RefreshActiveState();
                     RefreshTriggerApp();
                     RefreshEnableState();
                     RefreshStandaloneState();
+                    _ = RefreshBackendPathSentinelAsync();
+                }
+                else
+                {
+                    pingFailCount++;
+                    // v1.5.77: with the DiscoverBackendPath fallback, the very
+                    // FIRST failed ping is enough to attempt a launch. We still
+                    // wait one extra tick so a backend that is currently mid-
+                    // startup (config regeneration, watchdog spawn) gets a fair
+                    // shot at answering before we kill it with another spawn.
+                    if (pingFailCount == 1 || pingFailCount >= PingFailThreshold)
+                    {
+                        TryAutoSpawnBackendAsync();
+                    }
                 }
             });
         }

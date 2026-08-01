@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj": {}
+    "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj": {}
   },
   "projects": {
-    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj": {
+    "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
+        "projectUniqueName": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
         "projectName": "RetroBatGameModeWidget.Package",
-        "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
+        "projectPath": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget.Package\\RetroBatGameModeWidget.Package.wapproj",
         "packagesPath": "C:\\Users\\Win11\\.nuget\\packages\\",
-        "outputPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget.Package\\obj\\",
+        "outputPath": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget.Package\\obj\\",
         "projectStyle": "PackageReference",
         "UsingMicrosoftNETSdk": false,
         "fallbackFolders": [
@@ -34,8 +34,8 @@
             "framework": "uap10.0.17763",
             "targetAlias": "net451",
             "projectReferences": {
-              "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj": {
-                "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj"
+              "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj": {
+                "projectPath": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj"
               }
             }
           }
@@ -97,14 +97,14 @@
         }
       }
     },
-    "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj": {
+    "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
+        "projectUniqueName": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
         "projectName": "RetroBatGameModeWidget",
-        "projectPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
+        "projectPath": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget\\RetroBatGameModeWidget.csproj",
         "packagesPath": "C:\\Users\\Win11\\.nuget\\packages\\",
-        "outputPath": "Z:\\.Code\\.vsCodeProject\\RetroBatGameMode\\RetroBatGameModeWidget\\obj\\",
+        "outputPath": "Z:\\.Code\\..Github_sync\\RetroBatGameMode-v1.5.85_source_clean\\RetroBatGameModeWidget\\obj\\",
         "projectStyle": "PackageReference",
         "skipContentFileWrite": true,
         "UsingMicrosoftNETSdk": false,
@@ -151,6 +151,10 @@
             "Microsoft.UI.Xaml": {
               "target": "Package",
               "version": "[2.8.7, )"
+            },
+            "Microsoft.Win32.Registry": {
+              "target": "Package",
+              "version": "[5.0.0, )"
             },
             "System.Text.Json": {
               "target": "Package",
