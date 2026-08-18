@@ -325,6 +325,341 @@ namespace RetroBatAttractMode
         }
 
         // ====================================================================
+        // DIRECTINPUT API - DETECTION DES VOLANTS ET PERIPHERIQUES DE JEU
+        // ====================================================================
+        [StructLayout(LayoutKind.Sequential)]
+        public struct DIDEVICEINSTANCE
+        {
+            public uint dwSize;
+            public uint dwDevType;
+            public Guid guidInstance;
+            public Guid guidProduct;
+            public uint dwDevTypeFF;
+            public uint dwFlags;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string tszProductName;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string tszInstanceName;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct DIJOYSTATE
+        {
+            public long lX;
+            public long lY;
+            public long lZ;
+            public long lRx;
+            public long lRy;
+            public long lRz;
+            public int rglSlider0;
+            public int rglSlider1;
+            public uint rgdwPOV0;
+            public uint rgdwPOV1;
+            public uint rgdwPOV2;
+            public uint rgdwPOV3;
+            public uint rgbButtons0;
+            public uint rgbButtons1;
+            public uint rgbButtons2;
+            public uint rgbButtons3;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct DIJOYSTATE2
+        {
+            public long lX;
+            public long lY;
+            public long lZ;
+            public long lRx;
+            public long lRy;
+            public long lRz;
+            public int rglSlider0;
+            public int rglSlider1;
+            public int rglSlider2;
+            public int rglSlider3;
+            public uint rgdwPOV0;
+            public uint rgdwPOV1;
+            public uint rgdwPOV2;
+            public uint rgdwPOV3;
+            public uint rgbButtons0;
+            public uint rgbButtons1;
+            public uint rgbButtons2;
+            public uint rgbButtons3;
+            public uint rgbButtons4;
+            public uint rgbButtons5;
+            public uint rgbButtons6;
+            public uint rgbButtons7;
+            public long lVX;
+            public long lVY;
+            public long lVZ;
+            public long lVRx;
+            public long lVRy;
+            public long lVRz;
+            public int rglVSlider0;
+            public int rglVSlider1;
+            public int rglVSlider2;
+            public int rglVSlider3;
+            public long lAX;
+            public long lAY;
+            public long lAZ;
+            public long lARx;
+            public long lARy;
+            public long lARz;
+            public int rglASlider0;
+            public int rglASlider1;
+            public int rglASlider2;
+            public int rglASlider3;
+            public long lFX;
+            public long lFY;
+            public long lFZ;
+            public long lFRx;
+            public long lFRy;
+            public long lFRz;
+            public int rglFSlider0;
+            public int rglFSlider1;
+            public int rglFSlider2;
+            public int rglFSlider3;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct DIPROPDWORD
+        {
+            public uint dwSize;
+            public uint dwHeaderSize;
+            public uint dwObj;
+            public uint dwHow;
+            public uint dwData;
+        }
+
+        const uint DI8_2BUTTONS = 0x02;
+        const uint DIJOFS_X = 0;
+        const uint DIJOFS_Y = 4;
+        const uint DIJOFS_Z = 8;
+        const uint DIJOFS_RX = 12;
+        const uint DIJOFS_RY = 16;
+        const uint DIJOFS_RZ = 20;
+        const uint DIJOFS_SLIDER0 = 24;
+        const uint DIJOFS_SLIDER1 = 28;
+        const uint DIJOFS_POV0 = 32;
+        const uint DIJOFS_POV1 = 36;
+        const uint DIJOFS_POV2 = 40;
+        const uint DIJOFS_POV3 = 44;
+        const uint DIJOFS_BUTTON0 = 48;
+
+        const uint DIDFT_ALL = 0x00000000;
+        const uint DI8DEVCLASS_GAMECTRL = 0x05;
+        const uint DI8DEVTYPE_JOYSTICK = 0x02;
+        const uint DI8DEVTYPE_GAMEPAD = 0x03;
+        const uint DI8DEVTYPE_DRIVING = 0x04;
+        const uint DI8DEVTYPE_FLIGHT = 0x05;
+        const uint DIEDFL_ALLDEVICES = 0x00000000;
+        const uint DIEDFL_ATTACHEDONLY = 0x00000001;
+
+        delegate bool DIEnumDevicesCallback(ref DIDEVICEINSTANCE lpddi, IntPtr pvRef);
+
+        [DllImport("dinput8.dll", SetLastError = true)]
+        static extern int DirectInput8Create(IntPtr hinst, uint dwVersion, ref Guid riidltf, out IntPtr ppvOut, IntPtr punkOuter);
+
+        static Guid IID_IDirectInput8 = new Guid("BF798031-483A-4DA2-BB60-ED5F22317914");
+
+        [DllImport("dinput8.dll", SetLastError = true)]
+        static extern int IDirectInput8_EnumDevices(IntPtr pInstance, uint dwDevType, DIEnumDevicesCallback lpCallback, IntPtr pvRef, uint dwFlags);
+
+        [DllImport("dinput8.dll", SetLastError = true)]
+        static extern int IDirectInput8_CreateDevice(IntPtr pInstance, Guid rguid, out IntPtr ppDevice, IntPtr pUnkOuter);
+
+        [DllImport("dinput8.dll", SetLastError = true)]
+        static extern int IDirectInputDevice8_SetDataFormat(IntPtr pDevice, IntPtr lpdf);
+
+        [DllImport("dinput8.dll", SetLastError = true)]
+        static extern int IDirectInputDevice8_Acquire(IntPtr pDevice);
+
+        [DllImport("dinput8.dll", SetLastError = true)]
+        static extern int IDirectInputDevice8_Poll(IntPtr pDevice);
+
+        [DllImport("dinput8.dll", SetLastError = true)]
+        static extern int IDirectInputDevice8_GetDeviceState(IntPtr pDevice, uint cbData, IntPtr lpvData);
+
+        [DllImport("dinput8.dll", SetLastError = true)]
+        static extern int IDirectInputDevice8_Unacquire(IntPtr pDevice);
+
+        [DllImport("dinput8.dll", SetLastError = true)]
+        static extern int IDirectInputDevice8_Release(IntPtr pDevice);
+
+        [DllImport("dinput8.dll", SetLastError = true)]
+        static extern int IDirectInput8_Release(IntPtr pInstance);
+
+        private static IntPtr _directInput = IntPtr.Zero;
+        private static List<IntPtr> _directInputDevices = new List<IntPtr>();
+        private static List<DIDEVICEINSTANCE> _directInputDeviceInstances = new List<DIDEVICEINSTANCE>();
+        private static bool _directInputInitialized = false;
+        private static DateTime _lastDirectInputScan = DateTime.MinValue;
+
+        static bool InitializeDirectInput()
+        {
+            try
+            {
+                IntPtr hInstance = GetModuleHandle(null);
+                
+                // Essayer DirectInput8Create avec IDirectInput8 interface
+                int hr = DirectInput8Create(hInstance, 0x0800, ref IID_IDirectInput8, out _directInput, IntPtr.Zero);
+                
+                if (hr != 0 || _directInput == IntPtr.Zero)
+                {
+                    WriteLog($"[DirectInput] DirectInput8Create failed with HRESULT: 0x{hr:X8}");
+                    WriteLog("[DirectInput] Note: DirectInput may not be available on modern Windows. Consider using XInput or SDL2 instead.");
+                    return false;
+                }
+
+                WriteLog("[DirectInput] Initialized successfully");
+
+                // Enumerate all game controllers
+                DIEnumDevicesCallback callback = EnumDevicesCallback;
+                hr = IDirectInput8_EnumDevices(_directInput, DI8DEVCLASS_GAMECTRL, callback, IntPtr.Zero, DIEDFL_ATTACHEDONLY);
+
+                if (hr != 0)
+                {
+                    WriteLog($"[DirectInput] EnumDevices failed with HRESULT: 0x{hr:X8}");
+                }
+
+                _directInputInitialized = true;
+                return true;
+            }
+            catch (DllNotFoundException)
+            {
+                WriteLog("[DirectInput] dinput8.dll not found - DirectInput not available on this system");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                WriteLog($"[DirectInput] Initialization error: {ex.Message}");
+                return false;
+            }
+        }
+
+        static bool EnumDevicesCallback(ref DIDEVICEINSTANCE lpddi, IntPtr pvRef)
+        {
+            try
+            {
+                _directInputDeviceInstances.Add(lpddi);
+                WriteLog($"[DirectInput] Device found: '{lpddi.tszProductName}' - Type: 0x{lpddi.dwDevType:X8}");
+
+                // Create device
+                int hr = IDirectInput8_CreateDevice(_directInput, lpddi.guidInstance, out IntPtr device, IntPtr.Zero);
+                if (hr == 0 && device != IntPtr.Zero)
+                {
+                    _directInputDevices.Add(device);
+                    WriteLog($"[DirectInput] Device created successfully for '{lpddi.tszProductName}'");
+                }
+                else
+                {
+                    WriteLog($"[DirectInput] Failed to create device for '{lpddi.tszProductName}': 0x{hr:X8}");
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteLog($"[DirectInput] Callback error: {ex.Message}");
+            }
+            return true; // Continue enumeration
+        }
+
+        static bool CheckDirectInputActivity()
+        {
+            if (!_directInputInitialized)
+            {
+                if ((DateTime.Now - _lastDirectInputScan).TotalSeconds > 30)
+                {
+                    _lastDirectInputScan = DateTime.Now;
+                    InitializeDirectInput();
+                }
+                return false;
+            }
+
+            bool active = false;
+
+            for (int i = 0; i < _directInputDevices.Count; i++)
+            {
+                IntPtr device = _directInputDevices[i];
+                try
+                {
+                    // Try to poll the device
+                    int hr = IDirectInputDevice8_Poll(device);
+                    
+                    if (hr == 0)
+                    {
+                        // Get device state
+                        DIJOYSTATE2 state = new DIJOYSTATE2();
+                        int stateSize = Marshal.SizeOf(typeof(DIJOYSTATE2));
+                        IntPtr statePtr = Marshal.AllocHGlobal(stateSize);
+                        
+                        try
+                        {
+                            Marshal.StructureToPtr(state, statePtr, false);
+                            hr = IDirectInputDevice8_GetDeviceState(device, (uint)stateSize, statePtr);
+                            
+                            if (hr == 0)
+                            {
+                                state = Marshal.PtrToStructure<DIJOYSTATE2>(statePtr);
+
+                                // Check buttons (128 buttons max in DIJOYSTATE2)
+                                for (int b = 0; b < 128; b++)
+                                {
+                                    int buttonIndex = b / 32;
+                                    int buttonBit = b % 32;
+                                    if (buttonIndex < 8)
+                                    {
+                                        uint buttonValue = (buttonIndex == 0) ? state.rgbButtons0 :
+                                                          (buttonIndex == 1) ? state.rgbButtons1 :
+                                                          (buttonIndex == 2) ? state.rgbButtons2 :
+                                                          (buttonIndex == 3) ? state.rgbButtons3 :
+                                                          (buttonIndex == 4) ? state.rgbButtons4 :
+                                                          (buttonIndex == 5) ? state.rgbButtons5 :
+                                                          (buttonIndex == 6) ? state.rgbButtons6 : state.rgbButtons7;
+                                        
+                                        if ((buttonValue & (1u << buttonBit)) != 0)
+                                        {
+                                            active = true;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                // Check axes (with reduced threshold for wheels)
+                                if (!active)
+                                {
+                                    if (Math.Abs(state.lX) > 500) active = true;
+                                    if (Math.Abs(state.lY) > 500) active = true;
+                                    if (Math.Abs(state.lZ) > 500) active = true;
+                                    if (Math.Abs(state.lRx) > 500) active = true;
+                                    if (Math.Abs(state.lRy) > 500) active = true;
+                                    if (Math.Abs(state.lRz) > 500) active = true;
+                                }
+
+                                // Check POV hats
+                                if (!active)
+                                {
+                                    if (state.rgdwPOV0 != 0xFFFFFFFF) active = true;
+                                    if (state.rgdwPOV1 != 0xFFFFFFFF) active = true;
+                                    if (state.rgdwPOV2 != 0xFFFFFFFF) active = true;
+                                    if (state.rgdwPOV3 != 0xFFFFFFFF) active = true;
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            Marshal.FreeHGlobal(statePtr);
+                        }
+                    }
+                }
+                catch
+                {
+                    // Device might be disconnected, skip it
+                }
+            }
+
+            return active;
+        }
+
+        // ====================================================================
         // WIN32 API - DETECTION DE L'ACTIVITÉ MANETTES (XINPUT)
         // ====================================================================
         [StructLayout(LayoutKind.Sequential)]
@@ -462,6 +797,8 @@ namespace RetroBatAttractMode
             AvailableJoysticks.Clear();
             int maxDevs = joyGetNumDevs();
             if (maxDevs < 0) maxDevs = 16;
+            WriteLog($"[winmm] Scanning up to {maxDevs} joystick devices...");
+            
             for (uint i = 0; i < maxDevs; i++)
             {
                 JOYCAPS caps = new JOYCAPS();
@@ -476,6 +813,7 @@ namespace RetroBatAttractMode
                         if (joyGetPosEx(i, ref info) == JOYERR_NOERROR)
                         {
                             AvailableJoysticks.Add(i);
+                            WriteLog($"[winmm] Device ID {i}: '{caps.szPname}' - {caps.wNumButtons} buttons, {caps.wNumAxes} axes, Caps: 0x{caps.wCaps:X4}");
                         }
                     }
                 }
@@ -483,12 +821,16 @@ namespace RetroBatAttractMode
             }
             if (AvailableJoysticks.Count > 0)
             {
-                WriteLog($"[winmm] {AvailableJoysticks.Count} joystick(s) detected.");
+                WriteLog($"[winmm] {AvailableJoysticks.Count} joystick(s) detected and active.");
+            }
+            else
+            {
+                WriteLog("[winmm] No active joysticks detected.");
             }
         }
 
         // Seuil relatif pour considerer qu'un axe analogique winmm a bouge (en % de l'etendue).
-        const double JoyAxisRelativeThreshold = 0.04; // 4% de l'etendue totale
+        const double JoyAxisRelativeThreshold = 0.02; // 2% de l'etendue totale (plus sensible)
 
         static bool CheckWinmmJoystickActivity()
         {
@@ -507,14 +849,28 @@ namespace RetroBatAttractMode
                 if (joyGetPosEx(id, ref info) != JOYERR_NOERROR)
                     continue;
 
-                // Bouton presse => activite immediate
-                if (info.dwButtons != 0 || info.dwButtonNumber != 0)
-                    active = true;
-
-                // Comparaison avec l'etat precedent pour detecter un MVEMENT (plus fiable que des seuils absolus,
-                // car Certaines manettes renvoient une valeur non-centree au repos).
+                // Comparaison avec l'etat precedent pour detecter un MOUVEMENT (delta)
+                // Plus fiable que des seuils absolus, car certaines manettes renvoient
+                // une valeur non-centree au repos.
                 if (LastJoyInfo.TryGetValue(id, out JOYINFOEX prev))
                 {
+                    // Front montant sur n'importe quel bouton (un appui bref detecte meme
+                    // si on poll a 1Hz : si le bouton est encore presse maintenant mais
+                    // ne l'etait pas avant, c'est un nouvel appui).
+                    uint newButtons = info.dwButtons & ~prev.dwButtons;
+                    if (newButtons != 0)
+                        active = true;
+
+                    // dwButtonNumber = index du premier bouton presse (0xFFFFFFFF si aucun).
+                    // Si on a un appui alors qu'on en avait pas avant => activite.
+                    bool wasAnyPressed = prev.dwButtons != 0;
+                    bool isAnyPressed = info.dwButtons != 0;
+                    if (isAnyPressed && !wasAnyPressed)
+                        active = true;
+                    if (prev.dwButtonNumber != info.dwButtonNumber)
+                        active = true;
+
+                    // Comparaison axes (delta relatif)
                     uint rangeX = caps.wXmax - caps.wXmin; if (rangeX == 0) rangeX = 1;
                     uint rangeY = caps.wYmax - caps.wYmin; if (rangeY == 0) rangeY = 1;
                     uint rangeZ = caps.wZmax - caps.wZmin; if (rangeZ == 0) rangeZ = 1;
@@ -553,8 +909,8 @@ namespace RetroBatAttractMode
         }
 
         // ====================================================================
-        // SDL2 - CHARGEMENT DYNAMIQUE (couvre toutes les manettes supportees par SDL)
-        // SDL2.dll est charge depuis le dossier de l'exe si present. Sans SDL,
+        // SDL2/SDL3 - CHARGEMENT DYNAMIQUE (couvre toutes les manettes supportees par SDL)
+        // SDL2.dll ou SDL3.dll est charge depuis le dossier de l'exe si present. Sans SDL,
         // cette partie est silencieusement ignoree.
         // ====================================================================
         static class SdlGamepadHelper
@@ -562,71 +918,118 @@ namespace RetroBatAttractMode
             private static IntPtr _sdlLib = IntPtr.Zero;
             private static bool _initTried = false;
             private static bool _available = false;
+            private static bool _isSdl3 = false; // Détecter si on utilise SDL3
 
             const uint SDL_INIT_JOYSTICK = 0x00000200;
             const uint SDL_INIT_GAMECONTROLLER = 0x00002000;
             const int SDL_HAT_CENTERED = 0;
 
-            // Delegates marshalé's pour les fonctions SDL
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate int dSDL_InitSubSystem(uint flags);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate int dSDL_WasInit(uint flags);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate int dSDL_NumJoysticks();
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate IntPtr dSDL_JoystickOpen(int device_index);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate void dSDL_JoystickClose(IntPtr joystick);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate short dSDL_JoystickGetAxis(IntPtr joystick, int axis);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate byte dSDL_JoystickGetHat(IntPtr joystick, int hat);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate byte dSDL_JoystickGetButton(IntPtr joystick, int button);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate int dSDL_JoystickNumAxes(IntPtr joystick);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate int dSDL_JoystickNumHats(IntPtr joystick);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate int dSDL_JoystickNumButtons(IntPtr joystick);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate void dSDL_JoystickUpdate();
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate IntPtr dSDL_GameControllerOpen(int joystick_index);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate void dSDL_GameControllerClose(IntPtr controller);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate short dSDL_GameControllerGetAxis(IntPtr controller, int axis);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate byte dSDL_GameControllerGetButton(IntPtr controller, int button);
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            delegate void dSDL_GameControllerUpdate();
+            // Delegates marshalé's pour les fonctions SDL2 (désactivé - non utilisé)
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate int dSDL2_Init(uint flags);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate int dSDL2_InitSubSystem(uint flags);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate int dSDL2_WasInit(uint flags);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate int dSDL2_NumJoysticks();
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate IntPtr dSDL2_JoystickOpen(int device_index);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate void dSDL2_JoystickClose(IntPtr joystick);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate short dSDL2_JoystickGetAxis(IntPtr joystick, int axis);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate byte dSDL2_JoystickGetHat(IntPtr joystick, int hat);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate byte dSDL2_JoystickGetButton(IntPtr joystick, int button);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate int dSDL2_JoystickNumAxes(IntPtr joystick);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate int dSDL2_JoystickNumHats(IntPtr joystick);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate int dSDL2_JoystickNumButtons(IntPtr joystick);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate void dSDL2_JoystickUpdate();
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate IntPtr dSDL2_GameControllerOpen(int joystick_index);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate void dSDL2_GameControllerClose(IntPtr controller);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate short dSDL2_GameControllerGetAxis(IntPtr controller, int axis);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate byte dSDL2_GameControllerGetButton(IntPtr controller, int button);
+            // [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            // delegate void dSDL2_GameControllerUpdate();
 
-            static dSDL_InitSubSystem _initSubSystem;
-            static dSDL_NumJoysticks _numJoysticks;
-            static dSDL_JoystickOpen _joystickOpen;
-            static dSDL_JoystickClose _joystickClose;
-            static dSDL_JoystickGetAxis _joystickGetAxis;
-            static dSDL_JoystickGetHat _joystickGetHat;
-            static dSDL_JoystickGetButton _joystickGetButton;
-            static dSDL_JoystickNumAxes _joystickNumAxes;
-            static dSDL_JoystickNumHats _joystickNumHats;
-            static dSDL_JoystickNumButtons _joystickNumButtons;
-            static dSDL_JoystickUpdate _joystickUpdate;
-            static dSDL_GameControllerOpen _controllerOpen;
-            static dSDL_GameControllerClose _controllerClose;
-            static dSDL_GameControllerGetAxis _controllerGetAxis;
-            static dSDL_GameControllerGetButton _controllerGetButton;
-            static dSDL_GameControllerUpdate _controllerUpdate;
-            static dSDL_WasInit _wasInit;
+            // Delegates marshalé's pour les fonctions SDL3 (API différente)
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate int dSDL3_Init(uint flags);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate IntPtr dSDL3_GetJoysticks(out int count);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate IntPtr dSDL3_OpenJoystick(uint instance_id);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate void dSDL3_CloseJoystick(IntPtr joystick);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate float dSDL3_GetJoystickAxis(IntPtr joystick, int axis);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate byte dSDL3_GetJoystickHat(IntPtr joystick, int hat);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate byte dSDL3_GetJoystickButton(IntPtr joystick, int button);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate int dSDL3_GetNumJoystickAxes(IntPtr joystick);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate int dSDL3_GetNumJoystickHats(IntPtr joystick);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate int dSDL3_GetNumJoystickButtons(IntPtr joystick);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate void dSDL3_UpdateJoysticks();
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate uint dSDL3_GetJoystickInstanceID(IntPtr joystick);
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            delegate int dSDL3_InitSubSystem(uint flags);
+
+            // Variables SDL2 (désactivé - non utilisé)
+            // static dSDL2_Init _sdl2Init;
+            // static dSDL2_InitSubSystem _sdl2InitSubSystem;
+            // static dSDL2_NumJoysticks _sdl2NumJoysticks;
+            // static dSDL2_JoystickOpen _sdl2JoystickOpen;
+            // static dSDL2_JoystickClose _sdl2JoystickClose;
+            // static dSDL2_JoystickGetAxis _sdl2JoystickGetAxis;
+            // static dSDL2_JoystickGetHat _sdl2JoystickGetHat;
+            // static dSDL2_JoystickGetButton _sdl2JoystickGetButton;
+            // static dSDL2_JoystickNumAxes _sdl2JoystickNumAxes;
+            // static dSDL2_JoystickNumHats _sdl2JoystickNumHats;
+            // static dSDL2_JoystickNumButtons _sdl2JoystickNumButtons;
+            // static dSDL2_JoystickUpdate _sdl2JoystickUpdate;
+            // static dSDL2_WasInit _sdl2WasInit;
+
+            // Variables SDL3
+            static dSDL3_Init _sdl3Init;
+            static dSDL3_GetJoysticks _sdl3GetJoysticks;
+            static dSDL3_OpenJoystick _sdl3OpenJoystick;
+            static dSDL3_CloseJoystick _sdl3CloseJoystick;
+            static dSDL3_GetJoystickAxis _sdl3GetJoystickAxis;
+            static dSDL3_GetJoystickHat _sdl3GetJoystickHat;
+            static dSDL3_GetJoystickButton _sdl3GetJoystickButton;
+            static dSDL3_GetNumJoystickAxes _sdl3GetNumJoystickAxes;
+            static dSDL3_GetNumJoystickHats _sdl3GetNumJoystickHats;
+            static dSDL3_GetNumJoystickButtons _sdl3GetNumJoystickButtons;
+            static dSDL3_UpdateJoysticks _sdl3UpdateJoysticks;
+            static dSDL3_GetJoystickInstanceID _sdl3GetJoystickInstanceID;
+            static dSDL3_InitSubSystem _sdl3InitSubSystem;
 
             // Etat SDL memorise
             static IntPtr[] OpenJoysticks = new IntPtr[16];
-            static short[,] LastJoystickAxes = new short[16, 8];
-            static byte[] LastJoystickHats = new byte[16];
+            static float[,] LastJoystickAxesFloat = new float[16, 16]; // Pour SDL3 (float)
+            static byte[] LastJoystickHats = new byte[64]; // Augmenté à 64 (16 joysticks * 4 HATs max)
+            static byte[] LastJoystickButtons = new byte[16 * 128]; // 16 joysticks * 128 boutons max : pour détection front montant
             static int[] JoystickAxisCount = new int[16];
             static int[] JoystickHatCount = new int[16];
+            static int[] JoystickButtonCount = new int[16];
+            static uint[] JoystickInstanceIDs = new uint[16]; // Pour SDL3
+            static bool SdlDebugLogging = false; // Désactivé pour éviter le spam - réactiver via env var ATTRACT_SDL_DEBUG=1
 
             static IntPtr SafeGetProcAddress(string name)
             {
@@ -646,12 +1049,14 @@ namespace RetroBatAttractMode
                 if (_initTried) return;
                 _initTried = true;
 
-                // Chercher SDL2.dll dans le dossier de l'exe, puis dans le PATH
                 string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+                
+                // Essayer SDL3 d'abord (plus moderne)
                 string[] candidates = new string[] {
-                    Path.Combine(exeDir, "SDL2.dll"),
-                    Path.Combine(exeDir, "SDL3.dll") // SDL3 ok pour certaines fonctions compatibles (non garanti mais tente)
+                    Path.Combine(exeDir, "SDL3.dll"),
+                    Path.Combine(exeDir, "SDL2.dll")
                 };
+                
                 foreach (string path in candidates)
                 {
                     if (File.Exists(path))
@@ -660,136 +1065,292 @@ namespace RetroBatAttractMode
                         if (_sdlLib != IntPtr.Zero)
                         {
                             WriteLog($"[SDL] Loaded: {path}");
+                            _isSdl3 = path.Contains("SDL3");
                             break;
                         }
                     }
                 }
+                
                 if (_sdlLib == IntPtr.Zero)
                 {
                     // Tenter via le PATH systeme
-                    try { _sdlLib = LoadLibrary("SDL2.dll"); } catch { }
+                    try { _sdlLib = LoadLibrary("SDL3.dll"); if (_sdlLib != IntPtr.Zero) _isSdl3 = true; } catch { }
+                    if (_sdlLib == IntPtr.Zero)
+                    {
+                        try { _sdlLib = LoadLibrary("SDL2.dll"); if (_sdlLib != IntPtr.Zero) _isSdl3 = false; } catch { }
+                    }
                 }
+                
                 if (_sdlLib == IntPtr.Zero)
                 {
                     return; // SDL non disponible - on continuera sans
                 }
 
-                _initSubSystem = LoadDelegate<dSDL_InitSubSystem>("SDL_InitSubSystem");
-                _numJoysticks = LoadDelegate<dSDL_NumJoysticks>("SDL_NumJoysticks");
-                _joystickOpen = LoadDelegate<dSDL_JoystickOpen>("SDL_JoystickOpen");
-                _joystickClose = LoadDelegate<dSDL_JoystickClose>("SDL_JoystickClose");
-                _joystickGetAxis = LoadDelegate<dSDL_JoystickGetAxis>("SDL_JoystickGetAxis");
-                _joystickGetHat = LoadDelegate<dSDL_JoystickGetHat>("SDL_JoystickGetHat");
-                _joystickGetButton = LoadDelegate<dSDL_JoystickGetButton>("SDL_JoystickGetButton");
-                _joystickNumAxes = LoadDelegate<dSDL_JoystickNumAxes>("SDL_JoystickNumAxes");
-                _joystickNumHats = LoadDelegate<dSDL_JoystickNumHats>("SDL_JoystickNumHats");
-                _joystickNumButtons = LoadDelegate<dSDL_JoystickNumButtons>("SDL_JoystickNumButtons");
-                _joystickUpdate = LoadDelegate<dSDL_JoystickUpdate>("SDL_JoystickUpdate");
-                _controllerOpen = LoadDelegate<dSDL_GameControllerOpen>("SDL_GameControllerOpen");
-                _controllerClose = LoadDelegate<dSDL_GameControllerClose>("SDL_GameControllerClose");
-                _controllerGetAxis = LoadDelegate<dSDL_GameControllerGetAxis>("SDL_GameControllerGetAxis");
-                _controllerGetButton = LoadDelegate<dSDL_GameControllerGetButton>("SDL_GameControllerGetButton");
-                _controllerUpdate = LoadDelegate<dSDL_GameControllerUpdate>("SDL_GameControllerUpdate");
-                _wasInit = LoadDelegate<dSDL_WasInit>("SDL_WasInit");
-
-                if (_initSubSystem == null) return;
-                try
+                if (_isSdl3)
                 {
-                    int r = _initSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER);
-                    if (r == 0)
+                    // Charger les fonctions SDL3
+                    _sdl3Init = LoadDelegate<dSDL3_Init>("SDL_Init");
+                    _sdl3GetJoysticks = LoadDelegate<dSDL3_GetJoysticks>("SDL_GetJoysticks");
+                    _sdl3OpenJoystick = LoadDelegate<dSDL3_OpenJoystick>("SDL_OpenJoystick");
+                    _sdl3CloseJoystick = LoadDelegate<dSDL3_CloseJoystick>("SDL_CloseJoystick");
+                    _sdl3GetJoystickAxis = LoadDelegate<dSDL3_GetJoystickAxis>("SDL_GetJoystickAxis");
+                    _sdl3GetJoystickHat = LoadDelegate<dSDL3_GetJoystickHat>("SDL_GetJoystickHat");
+                    _sdl3GetJoystickButton = LoadDelegate<dSDL3_GetJoystickButton>("SDL_GetJoystickButton");
+                    _sdl3GetNumJoystickAxes = LoadDelegate<dSDL3_GetNumJoystickAxes>("SDL_GetNumJoystickAxes");
+                    _sdl3GetNumJoystickHats = LoadDelegate<dSDL3_GetNumJoystickHats>("SDL_GetNumJoystickHats");
+                    _sdl3GetNumJoystickButtons = LoadDelegate<dSDL3_GetNumJoystickButtons>("SDL_GetNumJoystickButtons");
+                    _sdl3UpdateJoysticks = LoadDelegate<dSDL3_UpdateJoysticks>("SDL_UpdateJoysticks");
+                    _sdl3GetJoystickInstanceID = LoadDelegate<dSDL3_GetJoystickInstanceID>("SDL_GetJoystickInstanceID");
+                    _sdl3InitSubSystem = LoadDelegate<dSDL3_InitSubSystem>("SDL_InitSubSystem");
+
+                    WriteLog($"[SDL3] SDL_Init loaded: {_sdl3Init != null}");
+                    WriteLog($"[SDL3] SDL_GetJoysticks loaded: {_sdl3GetJoysticks != null}");
+                    WriteLog($"[SDL3] SDL_OpenJoystick loaded: {_sdl3OpenJoystick != null}");
+                    WriteLog($"[SDL3] SDL_InitSubSystem loaded: {_sdl3InitSubSystem != null}");
+
+                    if (_sdl3Init == null)
                     {
-                        _available = true;
-                        WriteLog("[SDL] Joystick + gamecontroller subsystem initialized.");
+                        WriteLog("[SDL3] Failed to load SDL3_Init function.");
+                        return;
                     }
                     else
                     {
-                        WriteLog("[SDL] Subsystem initialization failed (code " + r + ").");
+                        // NOTE: En SDL3, SDL_Init() retourne SDL_bool (int) :
+                        //   1 (true)  = SUCCES
+                        //   0 (false) = ECHEC
+                        // C'est l'INVERSE de SDL2 o 0 = succes.
+                        // De plus, SDL_INIT_JOYSTICK et SDL_INIT_GAMECONTROLLER ont ete
+                        // supprimes en SDL3 (subsystem unify). On privilegie donc SDL_Init(0).
+                        bool initSuccess = false;
+
+                        uint[] initFlags = new uint[] {
+                            0, // Pas d'initialisation specifique (recommande en SDL3)
+                            SDL_INIT_JOYSTICK,                        // Legacy SDL2 (peut echouer en SDL3)
+                            SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER
+                        };
+
+                        string[] flagNames = new string[] {
+                            "none",
+                            "joystick",
+                            "joystick+gamecontroller"
+                        };
+
+                        for (int i = 0; i < initFlags.Length; i++)
+                        {
+                            try
+                            {
+                                int r = _sdl3Init(initFlags[i]);
+                                WriteLog($"[SDL3] SDL_Init({flagNames[i]}) returned: {r} (0x{r:X8})");
+                                // SDL3 : r != 0 => succes (renvoie SDL_TRUE = 1)
+                                if (r != 0)
+                                {
+                                    _available = true;
+                                    initSuccess = true;
+                                    WriteLog($"[SDL3] Successfully initialized with {flagNames[i]} flags.");
+                                    break;
+                                }
+                                else
+                                {
+                                    WriteLog($"[SDL3] Init failed for flag {flagNames[i]} (SDL_FALSE).");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                WriteLog($"[SDL3] Init with {flagNames[i]} exception: {ex.Message}");
+                            }
+                        }
+
+                        if (!initSuccess)
+                        {
+                            WriteLog("[SDL3] All initialization methods failed. SDL3 may not be compatible with this system or DLL version.");
+                        }
+                        else if (_available && _sdl3InitSubSystem != null)
+                        {
+                            // Forcer l'initialisation du subsystem joystick explicitement
+                            // En SDL3, SDL_INIT_JOYSTICK = 0x200 (peut encore exister pour compat)
+                            const uint SDL_INIT_JOYSTICK = 0x200;
+                            int r = _sdl3InitSubSystem(SDL_INIT_JOYSTICK);
+                            WriteLog($"[SDL3] SDL_InitSubSystem(JOYSTICK) returned: {r} (0x{r:X8})");
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    WriteLog("[SDL] Init error: " + ex.Message);
                 }
             }
 
             public static bool IsAvailable => _available;
 
-            // Seuil SDL pour les axes analogiques (zone morte ~6% du max)
-            const short SdlAxisDeadzone = 2000;
+            // Seuil SDL pour les axes analogiques (zone morte ~2% du max - plus sensible pour les volants)
+            const float SdlAxisDeadzone = 0.02f; // 2% pour SDL3 (float) - delta
+            const float SdlAxisAbsoluteThreshold = 0.05f; // 5% pour SDL3 - valeur absolue (baissé de 25%)
 
             public static bool CheckActivity()
             {
-                if (!_available || _numJoysticks == null) return false;
+                if (!_available) return false;
 
                 try
                 {
-                    if (_joystickUpdate != null) _joystickUpdate();
-
-                    int count = _numJoysticks();
                     bool active = false;
+                    bool debug = SdlDebugLogging;
 
-                    for (int i = 0; i < Math.Min(count, 16); i++)
+                    // Active le debug si variable d'environnement positionnee
+                    try
                     {
-                        // Ouvrir le joystick si pas deja ouvert
-                        if (OpenJoysticks[i] == IntPtr.Zero)
+                        string envDbg = Environment.GetEnvironmentVariable("ATTRACT_SDL_DEBUG");
+                        if (!string.IsNullOrEmpty(envDbg) && (envDbg == "1" || envDbg.Equals("true", StringComparison.OrdinalIgnoreCase)))
+                            debug = true;
+                    }
+                    catch { }
+
+                    // SDL3 API uniquement
+                    if (_sdl3UpdateJoysticks != null)
+                    {
+                        _sdl3UpdateJoysticks();
+                    }
+                    else if (debug)
+                    {
+                        WriteLog("[SDL3] WARNING: SDL_UpdateJoysticks is NULL");
+                    }
+
+                    // Obtenir la liste des joysticks SDL3
+                    int count = 0;
+                    IntPtr idsPtr = IntPtr.Zero;
+                    if (_sdl3GetJoysticks != null)
+                    {
+                        idsPtr = _sdl3GetJoysticks(out count);
+                        if (debug) WriteLog($"[SDL3] GetJoysticks returned count: {count}, idsPtr: 0x{idsPtr.ToInt64():X}");
+                    }
+                    else if (debug)
+                    {
+                        WriteLog("[SDL3] WARNING: SDL_GetJoysticks is NULL");
+                    }
+
+                    uint[] ids = new uint[16];
+                    if (idsPtr != IntPtr.Zero && count > 0)
+                    {
+                        int maxToRead = Math.Min(count, 16);
+                        for (int j = 0; j < maxToRead; j++)
                         {
-                            if (_joystickOpen != null)
+                            ids[j] = (uint)Marshal.ReadInt32(idsPtr + j * sizeof(uint));
+                        }
+                    }
+
+                    int loopCount = Math.Min(count, 16);
+                    for (int i = 0; i < loopCount; i++)
+                    {
+                        uint instanceID = ids[i];
+
+                        // Ouvrir le joystick si pas deja ouvert
+                        if (OpenJoysticks[i] == IntPtr.Zero || JoystickInstanceIDs[i] != instanceID)
+                        {
+                            if (_sdl3OpenJoystick != null)
                             {
-                                OpenJoysticks[i] = _joystickOpen(i);
+                                if (OpenJoysticks[i] != IntPtr.Zero && _sdl3CloseJoystick != null)
+                                    _sdl3CloseJoystick(OpenJoysticks[i]);
+
+                                OpenJoysticks[i] = _sdl3OpenJoystick(instanceID);
+                                JoystickInstanceIDs[i] = instanceID;
+
                                 if (OpenJoysticks[i] != IntPtr.Zero)
                                 {
-                                    if (_joystickNumAxes != null) JoystickAxisCount[i] = _joystickNumAxes(OpenJoysticks[i]);
-                                    if (_joystickNumHats != null) JoystickHatCount[i] = _joystickNumHats(OpenJoysticks[i]);
-                                    WriteLog($"[SDL] Joystick {i} opened ({JoystickAxisCount[i]} axes, {JoystickHatCount[i]} HATs).");
+                                    if (_sdl3GetNumJoystickAxes != null) JoystickAxisCount[i] = _sdl3GetNumJoystickAxes(OpenJoysticks[i]);
+                                    if (_sdl3GetNumJoystickHats != null) JoystickHatCount[i] = _sdl3GetNumJoystickHats(OpenJoysticks[i]);
+                                    if (_sdl3GetNumJoystickButtons != null) JoystickButtonCount[i] = _sdl3GetNumJoystickButtons(OpenJoysticks[i]);
+                                    // Une seule fois a l'ouverture : log informatif
+                                    WriteLog($"[SDL3] Joystick {i} opened ({JoystickAxisCount[i]} axes, {JoystickHatCount[i]} HATs, {JoystickButtonCount[i]} buttons).");
+
+                                    // Initialiser LastJoystickAxesFloat avec les valeurs actuelles
+                                    if (_sdl3GetJoystickAxis != null && JoystickAxisCount[i] > 0)
+                                    {
+                                        IntPtr joyInit = OpenJoysticks[i];
+                                        for (int a = 0; a < JoystickAxisCount[i] && a < 16; a++)
+                                        {
+                                            float v = _sdl3GetJoystickAxis(joyInit, a);
+                                            LastJoystickAxesFloat[i, a] = v;
+                                        }
+                                    }
+
+                                    // Initialiser l'etat precedent des boutons (cas ou on rouvre apres deconnexion)
+                                    int btnArrayBase = i * 128;
+                                    for (int b = 0; b < JoystickButtonCount[i] && b < 128; b++)
+                                    {
+                                        LastJoystickButtons[btnArrayBase + b] = 0;
+                                    }
+                                    int hatArrayBase = i * 4;
+                                    for (int h = 0; h < JoystickHatCount[i] && h < 4; h++)
+                                    {
+                                        LastJoystickHats[hatArrayBase + h] = SDL_HAT_CENTERED;
+                                    }
                                 }
                             }
-                            continue;
                         }
 
                         IntPtr joy = OpenJoysticks[i];
                         if (joy == IntPtr.Zero) continue;
 
-                        // Boutons
-                        if (_joystickGetButton != null && _joystickNumButtons != null)
+                        // ---- BOUTONS : detection de FRONT MONTANT (press) ----
+                        // Le probleme des volants DInput avec polling ~1Hz est qu'on peut
+                        // rater completement un appui bref. Solution : on detecte
+                        // strictement la transition 0 -> 1.
+                        if (_sdl3GetJoystickButton != null)
                         {
-                            int nb = _joystickNumButtons(joy);
-                            for (int b = 0; b < nb && b < 32; b++)
+                            int nb = JoystickButtonCount[i] > 0 ? JoystickButtonCount[i] : _sdl3GetNumJoystickButtons(joy);
+                            int btnBase = i * 128;
+                            for (int b = 0; b < nb && b < 128; b++)
                             {
-                                if (_joystickGetButton(joy, b) != 0)
+                                byte pressed = _sdl3GetJoystickButton(joy, b);
+                                byte prev = LastJoystickButtons[btnBase + b];
+                                // Front montant (0 -> 1) => activite immediate
+                                if (pressed != 0 && prev == 0)
                                 {
+                                    if (debug) WriteLog($"[SDL3] Button {b} PRESSED (rising edge)");
                                     active = true;
-                                    break;
+                                }
+                                LastJoystickButtons[btnBase + b] = pressed;
+                            }
+                        }
+
+                        // ---- HAT : detection de TOUT CHANGEMENT ----
+                        // Sur un volant, le HAT represente souvent le D-Pad. Un mouvement
+                        // bref de direction doit etre capture meme entre 2 polls.
+                        if (_sdl3GetJoystickHat != null && JoystickHatCount[i] > 0)
+                        {
+                            int hatBase = i * 4;
+                            for (int h = 0; h < JoystickHatCount[i] && h < 4; h++)
+                            {
+                                byte hat = _sdl3GetJoystickHat(joy, h);
+                                byte prev = LastJoystickHats[hatBase + h];
+                                if (hat != prev)
+                                {
+                                    if (debug) WriteLog($"[SDL3] HAT {h}: value={hat} (prev={prev})");
+                                    // Tout changement de HAT (y compris vers CENTERED) compte
+                                    if (hat != SDL_HAT_CENTERED || prev != SDL_HAT_CENTERED)
+                                        active = true;
+                                    LastJoystickHats[hatBase + h] = hat;
                                 }
                             }
                         }
 
-                        // HAT (croix directionnelle) - variation = activite
-                        if (_joystickGetHat != null && JoystickHatCount[i] > 0)
-                        {
-                            byte hat = _joystickGetHat(joy, 0);
-                            if (hat != LastJoystickHats[i] && (hat != SDL_HAT_CENTERED || LastJoystickHats[i] != SDL_HAT_CENTERED))
-                                active = true;
-                            LastJoystickHats[i] = hat;
-                        }
-
-                        // Axes - variation superieure a un seuil = activite
-                        if (_joystickGetAxis != null)
+                        // ---- AXES : detection par DELTA uniquement ----
+                        // On ne considere PAS la valeur absolue : un volant au repos a
+                        // souvent une legere derive. Seul un mouvement reel compte.
+                        if (_sdl3GetJoystickAxis != null)
                         {
                             int nbAxes = JoystickAxisCount[i];
-                            for (int a = 0; a < nbAxes && a < 8; a++)
+                            for (int a = 0; a < nbAxes && a < 16; a++)
                             {
-                                short v = _joystickGetAxis(joy, a);
-                                short prev = LastJoystickAxes[i, a];
-                                if (Math.Abs((int)v - (int)prev) > SdlAxisDeadzone)
+                                float v = _sdl3GetJoystickAxis(joy, a);
+                                float prev = LastJoystickAxesFloat[i, a];
+                                float delta = Math.Abs(v - prev);
+
+                                if (delta > SdlAxisDeadzone)
+                                {
+                                    if (debug) WriteLog($"[SDL3] Axis {a}: v={v:F4}, prev={prev:F4}, delta={delta:F4}");
                                     active = true;
-                                // Detection hors zone morte absolue (au cas ou la valeur de depart ne serait pas centree)
-                                if (Math.Abs(v) > 12000)
-                                    active = true;
-                                LastJoystickAxes[i, a] = v;
+                                }
+
+                                LastJoystickAxesFloat[i, a] = v;
                             }
                         }
                     }
-
                     return active;
                 }
                 catch
@@ -801,6 +1362,9 @@ namespace RetroBatAttractMode
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         static extern IntPtr LoadLibrary(string lpFileName);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool FreeLibrary(IntPtr hModule);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Ansi, SetLastError = true)]
         static extern IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
@@ -844,9 +1408,14 @@ namespace RetroBatAttractMode
         static string LastSelectedGameRom = "";
         static string LastSelectedSystem = "";
 
+        // Système de mémoire anti-répétition (20 minutes)
+        static Dictionary<string, DateTime> RecentlyShownGames = new Dictionary<string, DateTime>();
+        static Dictionary<string, DateTime> RecentlyShownSystems = new Dictionary<string, DateTime>();
+        static readonly TimeSpan MemoryDuration = TimeSpan.FromMinutes(20);
+
         // Suivi robuste de l'inactivité utilisateur
         static POINT LastMousePos = new POINT();
-        static int UserInactivitySeconds = 0;
+        static DateTime LastActivityTime = DateTime.MinValue;
 
         // Rechargement live de config.ini (FileSystemWatcher + debounce)
         static string ConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.ini");
@@ -889,6 +1458,9 @@ namespace RetroBatAttractMode
             // Initialiser les positions de départ et les manettes
             GetCursorPos(out LastMousePos);
             CheckGamepadActivity();
+
+            // DirectInput désactivé - SDL2 est utilisé à la place pour détecter les volants
+            // InitializeDirectInput();
 
             // Démarrer le hook de clavier et de souris global dans un thread dédié
             Thread hookThread = new Thread(HookThread);
@@ -938,11 +1510,12 @@ namespace RetroBatAttractMode
                     }
 
                     // 0. Vérifier si EmulationStation est toujours en cours d'exécution
-                    if (Process.GetProcessesByName("emulationstation").Length == 0)
-                    {
-                        WriteLog("EmulationStation is closed. Stopping the assistant.");
-                        break;
-                    }
+                    // TEMPORAIREMENT DESACTIVE POUR TEST SDL3
+                    // if (Process.GetProcessesByName("emulationstation").Length == 0)
+                    // {
+                    //     WriteLog("EmulationStation is closed. Stopping the assistant.");
+                    //     break;
+                    // }
 
                     // 1. Vérifier si un jeu est en cours d'exécution via le fichier d'état
                     bool isGameRunning = File.Exists(RunningFile);
@@ -955,13 +1528,13 @@ namespace RetroBatAttractMode
                     bool isScreensaverActive = false;
                     if (File.Exists(ScreensaverStopFile))
                     {
-                        if (IsAttractModeActive || UserInactivitySeconds > 0)
+                        if (IsAttractModeActive || LastActivityTime != DateTime.MinValue)
                         {
                             WriteLog("Signal screensaver-stop received: resuming Attract Mode cycle.");
                         }
                         IsAttractModeActive = false;
                         GamesCountInCurrentSystem = 0;
-                        UserInactivitySeconds = 0;
+                        LastActivityTime = DateTime.MinValue;
 
                         // Supprimer d'abord le sentinel START (fin effective de la pause)
                         if (File.Exists(ScreensaverStartFile))
@@ -979,6 +1552,7 @@ namespace RetroBatAttractMode
                             WriteLog("Signal screensaver-start received: pausing Attract Mode (RetroBat screensaver).");
                             IsAttractModeActive = false;
                             GamesCountInCurrentSystem = 0;
+                            LastActivityTime = DateTime.MinValue;
                         }
                     }
 
@@ -1004,16 +1578,44 @@ namespace RetroBatAttractMode
                         KeyboardActivityDetected = false; // Réinitialiser le drapeau
                     }
 
-                    bool mouseClicked = MouseActivityDetected;
-                    if (mouseClicked)
+                    // 4b. Fallback polling GetAsyncKeyState pour detecter les inputs
+                    // injectes (RustDesk, TeamViewer, RDP, etc.) qui passent au travers
+                    // du hook LLKHF_INJECTED. On check les touches principales.
+                    if (!keyboardActive)
+                    {
+                        // VK codes: A-Z (0x41-0x5A), 0-9 (0x30-0x39), ESPACE (0x20),
+                        // ENTREE (0x0D), ECHAP (0x1B), FLECHES (0x25-0x28),
+                        // MAJ (0x10), CTRL (0x11), ALT (0x12), TAB (0x09)
+                        ushort[] keysToCheck = new ushort[] {
+                            0x20, 0x0D, 0x1B, 0x09, 0x10, 0x11, 0x12,
+                            0x25, 0x26, 0x27, 0x28,
+                            0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
+                            0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D,
+                            0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A
+                        };
+                        foreach (ushort vk in keysToCheck)
+                        {
+                            if ((GetAsyncKeyState(vk) & 0x8000) != 0)
+                            {
+                                keyboardActive = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    bool realMouseClicked = MouseActivityDetected;
+                    if (realMouseClicked)
                     {
                         MouseActivityDetected = false; // Réinitialiser le drapeau
                     }
 
                     // Calcul de l'état d'inactivité
-                    if (isGameRunning || controllerActive || mouseMoved || keyboardActive || mouseClicked)
+                    bool anyActivity = isGameRunning || controllerActive || mouseMoved || keyboardActive || realMouseClicked;
+                    if (anyActivity)
                     {
-                        if (IsAttractModeActive || UserInactivitySeconds > 0)
+                        LastActivityTime = DateTime.Now; // Mettre à jour l'heure de dernière activité
+                        
+                        if (IsAttractModeActive || LastActivityTime != DateTime.MinValue)
                         {
                             if (isGameRunning)
                             {
@@ -1031,7 +1633,7 @@ namespace RetroBatAttractMode
                             {
                                 WriteLog("Keyboard activity detected! Stopping Attract Mode.");
                             }
-                            else if (mouseClicked)
+                            else if (realMouseClicked)
                             {
                                 WriteLog("Mouse click or scroll detected! Stopping Attract Mode.");
                             }
@@ -1039,14 +1641,16 @@ namespace RetroBatAttractMode
                             IsAttractModeActive = false;
                             GamesCountInCurrentSystem = 0;
                         }
-                        UserInactivitySeconds = 0;
-                    }
-                    else
-                    {
-                        UserInactivitySeconds++;
                     }
 
-                    bool isUserInactive = UserInactivitySeconds >= InactivityTimeout;
+                    // Calculer secondes d'inactivité depuis dernière activité
+                    int inactiveSeconds = 0;
+                    if (LastActivityTime != DateTime.MinValue)
+                    {
+                        inactiveSeconds = (int)(DateTime.Now - LastActivityTime).TotalSeconds;
+                    }
+
+                    bool isUserInactive = inactiveSeconds >= InactivityTimeout;
 
                     // 5. Check if EmulationStation is in foreground (if OnlyWhenFocused enabled)
                     if (OnlyWhenFocused && !IsEmulationStationFocused())
@@ -1057,8 +1661,8 @@ namespace RetroBatAttractMode
                             IsAttractModeActive = false;
                             GamesCountInCurrentSystem = 0;
                         }
-                        UserInactivitySeconds = 0;
-                        WriteConsole($"[Standby] ES not in focus. Inactivity: {UserInactivitySeconds}/{InactivityTimeout}s");
+                        LastActivityTime = DateTime.MinValue;
+                        WriteConsole($"[Standby] ES not in focus. Inactivity: {inactiveSeconds}/{InactivityTimeout}s");
                         Thread.Sleep(1000);
                         continue;
                     }
@@ -1078,7 +1682,7 @@ namespace RetroBatAttractMode
                     {
                         if (!IsAttractModeActive)
                         {
-                            WriteLog($"Inactivity detected ({UserInactivitySeconds}s). Activating Attract Mode...");
+                            WriteLog($"Inactivity detected ({inactiveSeconds}s). Activating Attract Mode...");
                             IsAttractModeActive = true;
                             GamesCountInCurrentSystem = 0;
                         }
@@ -1099,8 +1703,8 @@ namespace RetroBatAttractMode
                             waitingContext = $" | [In System Picker] System: {currentSystem}";
                         }
 
-                        WriteConsole($"[Idle] Inactivity: {UserInactivitySeconds}/{InactivityTimeout}s{waitingContext} | Controllers: {controllerActive}");
-                        Thread.Sleep(1000);
+                        WriteConsole($"[Idle] Inactivity: {inactiveSeconds}/{InactivityTimeout}s{waitingContext} | Controllers: {controllerActive}");
+                        Thread.Sleep(200);
                     }
                 }
                 catch (Exception ex)
@@ -1114,6 +1718,47 @@ namespace RetroBatAttractMode
         // ====================================================================
         // COEURS DU MODE ATTRACT (LOGIQUE DE NAVIGATION)
         // ====================================================================
+        // ====================================================================
+        // GESTION DE LA MEMOIRE ANTI-REPETITION (20 MINUTES)
+        // ====================================================================
+        static void CleanOldMemoryEntries()
+        {
+            DateTime now = DateTime.Now;
+            var expiredGames = RecentlyShownGames.Where(kvp => (now - kvp.Value) > MemoryDuration).ToList();
+            foreach (var kvp in expiredGames)
+            {
+                RecentlyShownGames.Remove(kvp.Key);
+            }
+
+            var expiredSystems = RecentlyShownSystems.Where(kvp => (now - kvp.Value) > MemoryDuration).ToList();
+            foreach (var kvp in expiredSystems)
+            {
+                RecentlyShownSystems.Remove(kvp.Key);
+            }
+        }
+
+        static bool IsGameRecentlyShown(string gameKey)
+        {
+            CleanOldMemoryEntries();
+            return RecentlyShownGames.ContainsKey(gameKey);
+        }
+
+        static bool IsSystemRecentlyShown(string systemName)
+        {
+            CleanOldMemoryEntries();
+            return RecentlyShownSystems.ContainsKey(systemName);
+        }
+
+        static void MarkGameAsShown(string gameKey)
+        {
+            RecentlyShownGames[gameKey] = DateTime.Now;
+        }
+
+        static void MarkSystemAsShown(string systemName)
+        {
+            RecentlyShownSystems[systemName] = DateTime.Now;
+        }
+
         static void ExecuteAttractModeCycle()
         {
             bool isInsideGameList = CheckIfInsideGameList(out string currentSystem);
@@ -1133,12 +1778,35 @@ namespace RetroBatAttractMode
                 // We are on the systems screen.
                 WriteLog("Navigating through systems list...");
 
-                // Fast random scroll
-                ScrollRandomly();
-                Thread.Sleep(1000); // Give RetroBat time to write the system file
+                // Nettoyer les anciennes entrées de mémoire
+                CleanOldMemoryEntries();
 
-                // Read the system we landed on
-                string detectedSystem = ReadSelectedSystem();
+                // Fast random scroll avec vérification anti-répétition
+                string detectedSystem = "";
+                int attempts = 0;
+                const int maxAttempts = 10;
+
+                while (attempts < maxAttempts)
+                {
+                    ScrollRandomly();
+                    Thread.Sleep(1000); // Give RetroBat time to write the system file
+
+                    detectedSystem = ReadSelectedSystem();
+
+                    // Vérifier si ce système a été affiché récemment
+                    if (!IsSystemRecentlyShown(detectedSystem))
+                    {
+                        break;
+                    }
+
+                    WriteLog($"System '{detectedSystem}' was shown recently (within 20min). Trying another...");
+                    attempts++;
+                }
+
+                if (attempts >= maxAttempts)
+                {
+                    WriteLog("Could not find a system not recently shown after 10 attempts. Using current selection.");
+                }
 
                 WriteLog($"System selected: '{detectedSystem}'. Entering the system...");
                 ushort enterVk = GetVirtualKey(EnterKey, 0x58); // 0x58 = VK_X
@@ -1146,6 +1814,7 @@ namespace RetroBatAttractMode
                 SimulateKeyPress(enterVk);
                 GamesCountInCurrentSystem = 0;
                 LastSelectedSystem = detectedSystem;
+                MarkSystemAsShown(detectedSystem);
                 Thread.Sleep(2000); // Wait for the system to load the game list
             }
             else
@@ -1164,25 +1833,41 @@ namespace RetroBatAttractMode
 
                 WriteLog($"Searching for a game in '{currentSystem}'... (Game {GamesCountInCurrentSystem + 1}/{MaxGamesPerSystem})");
 
-                // Random scroll
-                ScrollRandomly();
-                Thread.Sleep(1200); // Wait for the selected game file to be updated
+                // Nettoyer les anciennes entrées de mémoire
+                CleanOldMemoryEntries();
 
-                // Detect the selected game to avoid duplicates
+                // Random scroll avec vérification anti-répétition
                 string selectedRom = "";
                 string selectedGameName = "";
-                ReadSelectedGame(out string gameSys, out selectedRom, out selectedGameName);
+                int attempts = 0;
+                const int maxAttempts = 10;
 
-                if (!string.IsNullOrEmpty(selectedRom) && selectedRom.Equals(LastSelectedGameRom, StringComparison.OrdinalIgnoreCase))
+                while (attempts < maxAttempts)
                 {
-                    WriteLog("Same game as previous detected. Shifting one step.");
-                    SimulateScroll(Rand.Next(0, 2) == 0 ? 1 : -1);
-                    Thread.Sleep(1000);
-                    ReadSelectedGame(out gameSys, out selectedRom, out selectedGameName);
+                    ScrollRandomly();
+                    Thread.Sleep(1200); // Wait for the selected game file to be updated
+
+                    ReadSelectedGame(out string gameSys, out selectedRom, out selectedGameName);
+                    string gameKey = $"{currentSystem}|{selectedRom}";
+
+                    // Vérifier si ce jeu a été affiché récemment
+                    if (!IsGameRecentlyShown(gameKey) && !selectedRom.Equals(LastSelectedGameRom, StringComparison.OrdinalIgnoreCase))
+                    {
+                        break;
+                    }
+
+                    WriteLog($"Game '{selectedGameName}' was shown recently (within 20min) or is same as previous. Trying another...");
+                    attempts++;
+                }
+
+                if (attempts >= maxAttempts)
+                {
+                    WriteLog("Could not find a game not recently shown after 10 attempts. Using current selection.");
                 }
 
                 LastSelectedGameRom = selectedRom;
                 GamesCountInCurrentSystem++;
+                MarkGameAsShown($"{currentSystem}|{selectedRom}");
 
                 WriteLog($"Presenting game: '{selectedGameName}' ({currentSystem})");
                 WriteLog($"Display delay started for {GameDisplayDelay} seconds...");
@@ -1217,6 +1902,7 @@ namespace RetroBatAttractMode
 
                     if (CheckGamepadActivity() || realMouseMoved || realKeyboardActive || realMouseClicked)
                     {
+                        LastActivityTime = DateTime.Now;
                         WriteLog("User activity detected during game display! Interrupted.");
                         return;
                     }
@@ -1461,6 +2147,17 @@ namespace RetroBatAttractMode
         {
             bool active = false;
 
+            // DirectInput désactivé - SDL2 est utilisé à la place
+            // ----------- 0) DirectInput (volants, joysticks, manettes DirectInput) -----------
+            // try
+            // {
+            //     if (CheckDirectInputActivity()) active = true;
+            // }
+            // catch (Exception ex)
+            // {
+            //     WriteConsole($"[DirectInput] error: {ex.Message}");
+            // }
+
             // ----------- 1) XInput (manettes Xbox /Compatibles) -----------
             XINPUT_STATE state = new XINPUT_STATE();
             for (int i = 0; i < 4; i++)
@@ -1470,15 +2167,15 @@ namespace RetroBatAttractMode
                     // Un bouton est presse
                     if (state.Gamepad.wButtons != 0) active = true;
 
-                    // Les gachettes depassent le seuil de zone morte (abaisse a 20 pour plus de sensibilite)
-                    if (state.Gamepad.bLeftTrigger > 20 || state.Gamepad.bRightTrigger > 20) active = true;
+                    // Les gachettes depassent le seuil de zone morte (abaisse a 10 pour plus de sensibilite)
+                    if (state.Gamepad.bLeftTrigger > 10 || state.Gamepad.bRightTrigger > 10) active = true;
 
-                    // Les joysticks depassent la zone morte (abaisse a 5000 pour detecter les petits mouvements)
-                    if (Math.Abs(state.Gamepad.sThumbLX) > 5000 || Math.Abs(state.Gamepad.sThumbLY) > 5000) active = true;
-                    if (Math.Abs(state.Gamepad.sThumbRX) > 5000 || Math.Abs(state.Gamepad.sThumbRY) > 5000) active = true;
+                    // Les joysticks depassent la zone morte (abaisse a 3000 pour detecter les petits mouvements)
+                    if (Math.Abs(state.Gamepad.sThumbLX) > 3000 || Math.Abs(state.Gamepad.sThumbLY) > 3000) active = true;
+                    if (Math.Abs(state.Gamepad.sThumbRX) > 3000 || Math.Abs(state.Gamepad.sThumbRY) > 3000) active = true;
 
                     // Comparaison avec l'etat precedent pour detecter un MOUVEMENT
-                    // (delta abaisse a 500 pour les mouvements fins)
+                    // (delta abaisse a 300 pour les mouvements fins)
                     if (LastGamepadStates.TryGetValue(i, out var lastState))
                     {
                         if (state.dwPacketNumber != lastState.dwPacketNumber)
@@ -1486,10 +2183,10 @@ namespace RetroBatAttractMode
                             if (state.Gamepad.wButtons != lastState.Gamepad.wButtons ||
                                 state.Gamepad.bLeftTrigger != lastState.Gamepad.bLeftTrigger ||
                                 state.Gamepad.bRightTrigger != lastState.Gamepad.bRightTrigger ||
-                                Math.Abs(state.Gamepad.sThumbLX - lastState.Gamepad.sThumbLX) > 500 ||
-                                Math.Abs(state.Gamepad.sThumbLY - lastState.Gamepad.sThumbLY) > 500 ||
-                                Math.Abs(state.Gamepad.sThumbRX - lastState.Gamepad.sThumbRX) > 500 ||
-                                Math.Abs(state.Gamepad.sThumbRY - lastState.Gamepad.sThumbRY) > 500)
+                                Math.Abs(state.Gamepad.sThumbLX - lastState.Gamepad.sThumbLX) > 300 ||
+                                Math.Abs(state.Gamepad.sThumbLY - lastState.Gamepad.sThumbLY) > 300 ||
+                                Math.Abs(state.Gamepad.sThumbRX - lastState.Gamepad.sThumbRX) > 300 ||
+                                Math.Abs(state.Gamepad.sThumbRY - lastState.Gamepad.sThumbRY) > 300)
                             {
                                 active = true;
                             }
