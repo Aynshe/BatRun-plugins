@@ -831,6 +831,9 @@ namespace RetroBatAttractMode
 
         // Seuil relatif pour considerer qu'un axe analogique winmm a bouge (en % de l'etendue).
         const double JoyAxisRelativeThreshold = 0.02; // 2% de l'etendue totale (plus sensible)
+        // Seuil absolu minimum en unites brutes (evite le bruit de derive des volants)
+        // Pour range 0-65535, 1000 = ~1.5%
+        const uint JoyAxisAbsoluteThreshold = 1000;
 
         static bool CheckWinmmJoystickActivity()
         {
@@ -870,16 +873,24 @@ namespace RetroBatAttractMode
                     if (prev.dwButtonNumber != info.dwButtonNumber)
                         active = true;
 
-                    // Comparaison axes (delta relatif)
+                    // Comparaison axes (delta relatif + seuil absolu pour filtrer le bruit)
                     uint rangeX = caps.wXmax - caps.wXmin; if (rangeX == 0) rangeX = 1;
                     uint rangeY = caps.wYmax - caps.wYmin; if (rangeY == 0) rangeY = 1;
                     uint rangeZ = caps.wZmax - caps.wZmin; if (rangeZ == 0) rangeZ = 1;
 
-                    double dx = Math.Abs((double)(info.dwXpos - prev.dwXpos)) / rangeX;
-                    double dy = Math.Abs((double)(info.dwYpos - prev.dwYpos)) / rangeY;
-                    double dz = Math.Abs((double)(info.dwZpos - prev.dwZpos)) / rangeZ;
+                    uint dxRaw = (uint)Math.Abs((long)info.dwXpos - (long)prev.dwXpos);
+                    uint dyRaw = (uint)Math.Abs((long)info.dwYpos - (long)prev.dwYpos);
+                    uint dzRaw = (uint)Math.Abs((long)info.dwZpos - (long)prev.dwZpos);
 
-                    if (dx > JoyAxisRelativeThreshold || dy > JoyAxisRelativeThreshold || dz > JoyAxisRelativeThreshold)
+                    double dx = (double)dxRaw / rangeX;
+                    double dy = (double)dyRaw / rangeY;
+                    double dz = (double)dzRaw / rangeZ;
+
+                    // Seuil relatif ET absolu (les deux doivent etre depasses pour eviter
+                    // le bruit constant de derive des volants au repos)
+                    if ((dx > JoyAxisRelativeThreshold && dxRaw > JoyAxisAbsoluteThreshold) ||
+                        (dy > JoyAxisRelativeThreshold && dyRaw > JoyAxisAbsoluteThreshold) ||
+                        (dz > JoyAxisRelativeThreshold && dzRaw > JoyAxisAbsoluteThreshold))
                         active = true;
 
                     // Variation du chapeau (POV/HAT)
@@ -894,11 +905,20 @@ namespace RetroBatAttractMode
                         uint rangeV = caps.wVmax - caps.wVmin; if (rangeV == 0) rangeV = 1;
 
                         if ((caps.wCaps & 0x02) != 0) // JOYCAPS_HASR
-                            if (Math.Abs((double)(info.dwRpos - prev.dwRpos)) / rangeR > JoyAxisRelativeThreshold) active = true;
+                        {
+                            uint dR = (uint)Math.Abs((long)info.dwRpos - (long)prev.dwRpos);
+                            if ((double)dR / rangeR > JoyAxisRelativeThreshold && dR > JoyAxisAbsoluteThreshold) active = true;
+                        }
                         if ((caps.wCaps & 0x04) != 0) // JOYCAPS_HASU
-                            if (Math.Abs((double)(info.dwUpos - prev.dwUpos)) / rangeU > JoyAxisRelativeThreshold) active = true;
+                        {
+                            uint dU = (uint)Math.Abs((long)info.dwUpos - (long)prev.dwUpos);
+                            if ((double)dU / rangeU > JoyAxisRelativeThreshold && dU > JoyAxisAbsoluteThreshold) active = true;
+                        }
                         if ((caps.wCaps & 0x08) != 0) // JOYCAPS_HASV
-                            if (Math.Abs((double)(info.dwVpos - prev.dwVpos)) / rangeV > JoyAxisRelativeThreshold) active = true;
+                        {
+                            uint dV = (uint)Math.Abs((long)info.dwVpos - (long)prev.dwVpos);
+                            if ((double)dV / rangeV > JoyAxisRelativeThreshold && dV > JoyAxisAbsoluteThreshold) active = true;
+                        }
                     }
                 }
 
@@ -1613,9 +1633,10 @@ namespace RetroBatAttractMode
                     bool anyActivity = isGameRunning || controllerActive || mouseMoved || keyboardActive || realMouseClicked;
                     if (anyActivity)
                     {
-                        LastActivityTime = DateTime.Now; // Mettre à jour l'heure de dernière activité
+                        LastActivityTime = DateTime.Now; // Mettre à jour l'heure de dernière activité (toujours)
                         
-                        if (IsAttractModeActive || LastActivityTime != DateTime.MinValue)
+                        // Log et reset UNIQUEMENT si l'attract mode était ACTIVEMENT en cours
+                        if (IsAttractModeActive)
                         {
                             if (isGameRunning)
                             {
@@ -1791,6 +1812,16 @@ namespace RetroBatAttractMode
                     ScrollRandomly();
                     Thread.Sleep(1000); // Give RetroBat time to write the system file
 
+                    // Check user activity during scrolling - stop immediately if detected
+                    if (CheckGamepadActivity())
+                    {
+                        LastActivityTime = DateTime.Now;
+                        WriteLog("Controller activity detected during system scrolling! Stopping Attract Mode.");
+                        IsAttractModeActive = false;
+                        GamesCountInCurrentSystem = 0;
+                        return;
+                    }
+
                     detectedSystem = ReadSelectedSystem();
 
                     // Vérifier si ce système a été affiché récemment
@@ -1846,6 +1877,16 @@ namespace RetroBatAttractMode
                 {
                     ScrollRandomly();
                     Thread.Sleep(1200); // Wait for the selected game file to be updated
+
+                    // Check user activity during scrolling - stop immediately if detected
+                    if (CheckGamepadActivity())
+                    {
+                        LastActivityTime = DateTime.Now;
+                        WriteLog("Controller activity detected during game scrolling! Stopping Attract Mode.");
+                        IsAttractModeActive = false;
+                        GamesCountInCurrentSystem = 0;
+                        return;
+                    }
 
                     ReadSelectedGame(out string gameSys, out selectedRom, out selectedGameName);
                     string gameKey = $"{currentSystem}|{selectedRom}";
