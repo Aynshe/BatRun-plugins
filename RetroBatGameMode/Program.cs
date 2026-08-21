@@ -604,6 +604,15 @@ namespace RetroBatGameMode
 
 
 
+        static string RemoveExeExtension(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return name;
+            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                return name.Substring(0, name.Length - 4);
+            return name;
+        }
+
+
         static bool IsProcessElevated(int pid)
 
         {
@@ -1096,8 +1105,8 @@ namespace RetroBatGameMode
 
                 foreach (var w in suspListArgs)
 
-                    suspensionWhite.Add(w.Trim().Replace(".exe", ""));
-
+                    suspensionWhite.Add(RemoveExeExtension(w.Trim()));
+                
 
 
                 // Parse hide whitelist
@@ -1112,8 +1121,8 @@ namespace RetroBatGameMode
 
                 foreach (var w in hideListArgs)
 
-                    hideWhite.Add(w.Trim().Replace(".exe", ""));
-
+                    hideWhite.Add(RemoveExeExtension(w.Trim()));
+                
 
 
                 // ThirdPartyApps must never be hidden: they are the apps we optimize FOR
@@ -2351,7 +2360,7 @@ namespace RetroBatGameMode
             {
                 foreach (var part in current.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
-                    var clean = part.Trim().Replace(".exe", "");
+                    var clean = RemoveExeExtension(part.Trim());
                     if (clean.Length > 0) set.Add(clean);
                 }
             }
@@ -2360,7 +2369,7 @@ namespace RetroBatGameMode
             foreach (var critical in floor)
             {
                 if (string.IsNullOrEmpty(critical)) continue;
-                var c = critical.Trim().Replace(".exe", "");
+                var c = RemoveExeExtension(critical.Trim());
                 if (!set.Contains(c))
                 {
                     set.Add(c);
@@ -2885,9 +2894,9 @@ namespace RetroBatGameMode
 
         {
 
-            var temp = new System.Text.StringBuilder(255);
+            var temp = new System.Text.StringBuilder(8192);
 
-            int i = GetPrivateProfileString(section, key, defaultValue, temp, 255, filePath);
+            int i = GetPrivateProfileString(section, key, defaultValue, temp, 8192, filePath);
 
             return temp.ToString();
 
@@ -5671,7 +5680,7 @@ namespace RetroBatGameMode
 
             foreach (var w in whitelistArgs)
 
-                safeList.Add(w.Trim().Replace(".exe", ""));
+                safeList.Add(RemoveExeExtension(w.Trim()));
 
 
 
@@ -6337,7 +6346,7 @@ namespace RetroBatGameMode
 
                 {
 
-                    string name = app.Trim().Replace(".exe", "");
+                    string name = RemoveExeExtension(app.Trim());
 
                     if (!string.IsNullOrEmpty(name)) list.Add(name);
 
@@ -6385,7 +6394,7 @@ namespace RetroBatGameMode
 
                 {
 
-                    string name = app.Trim().Replace(".exe", "");
+                    string name = RemoveExeExtension(app.Trim());
 
                     if (!string.IsNullOrEmpty(name) && Process.GetProcessesByName(name).Length > 0)
 
@@ -6425,7 +6434,7 @@ namespace RetroBatGameMode
 
                     {
 
-                        string name = part.Trim().Replace(".exe", "");
+                        string name = RemoveExeExtension(part.Trim());
 
                         if (!string.IsNullOrEmpty(name) && Process.GetProcessesByName(name).Length > 0)
 
@@ -6483,7 +6492,7 @@ namespace RetroBatGameMode
 
                         string trimmed = p.Trim();
 
-                        if (trimmed.Replace(".exe", "").Equals(name.Trim(), StringComparison.OrdinalIgnoreCase))
+                        if (RemoveExeExtension(trimmed).Equals(name.Trim(), StringComparison.OrdinalIgnoreCase))
 
                             found = true;
 

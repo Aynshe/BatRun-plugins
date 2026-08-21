@@ -9,9 +9,9 @@
     <UseWindowsForms>true</UseWindowsForms>
 
     <!-- Versioning: change this number for each release -->
-    <VersionPrefix>1.5.85</VersionPrefix>
-    <AssemblyVersion>1.5.85.0</AssemblyVersion>
-    <FileVersion>1.5.85.0</FileVersion>
+    <VersionPrefix>1.5.87</VersionPrefix>
+    <AssemblyVersion>1.5.87.0</AssemblyVersion>
+    <FileVersion>1.5.87.0</FileVersion>
     <Company>RetroBat</Company>
     <Product>RetroBat Game Mode</Product>
     <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
